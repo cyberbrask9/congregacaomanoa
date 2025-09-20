@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import { db } from '@/lib/utils';
+import { dbUtils } from '@/lib/utils';
 
 // Método POST para criar objetos
 export async function POST(request: NextRequest) {
@@ -62,12 +62,12 @@ export async function POST(request: NextRequest) {
       fotoPath = `/uploads/${uniqueName}`;
     }
 
-    // Salvar no "banco de dados"
-    const novoObjeto = await db.create({
+    // Salvar no banco de dados REAL
+    const novoObjeto = await dbUtils.create({
       nome,
       atribuição,
       privilégio,
-      foto: fotoPath // Pode ser string vazia se não houver foto
+      foto: fotoPath
     });
 
     return NextResponse.json({
@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Método GET para listar objetos - FALTANDO NO SEU CÓDIGO
+// Método GET para listar objetos
 export async function GET() {
   try {
-    const objetos = await db.findAll();
+    const objetos = await dbUtils.findAll();
     return NextResponse.json(objetos);
   } catch (error) {
     console.error('Erro ao listar objetos:', error);
@@ -98,7 +98,7 @@ export async function GET() {
   }
 }
 
-/// Método PUT para atualizar objeto
+// Método PUT para atualizar objeto
 export async function PUT(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -117,18 +117,16 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Encontrar o objeto
-    const objetos = await db.findAll();
-    const objetoIndex = objetos.findIndex(o => o.id === parseInt(id));
-    
-    if (objetoIndex === -1) {
+    // Verificar se objeto existe
+    const objetoExistente = await dbUtils.findById(parseInt(id));
+    if (!objetoExistente) {
       return NextResponse.json(
         { error: 'Objeto não encontrado' },
         { status: 404 }
       );
     }
 
-    let fotoPath = objetos[objetoIndex].foto;
+    let fotoPath = objetoExistente.foto;
 
     // Processar a nova foto apenas se foi enviada
     if (foto && foto.size > 0) {
@@ -169,18 +167,17 @@ export async function PUT(request: NextRequest) {
       fotoPath = `/uploads/${uniqueName}`;
     }
 
-    // Atualizar o objeto
-    objetos[objetoIndex] = {
-      ...objetos[objetoIndex],
+    // Atualizar o objeto no banco de dados
+    const objetoAtualizado = await dbUtils.update(parseInt(id), {
       nome,
       atribuição,
       privilégio,
       foto: fotoPath
-    };
+    });
 
     return NextResponse.json({
       message: 'Objeto atualizado com sucesso!',
-      objeto: objetos[objetoIndex]
+      objeto: objetoAtualizado
     });
 
   } catch (error) {
@@ -192,7 +189,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// Métodos Delete
+// Método DELETE para excluir objeto
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -205,19 +202,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Encontrar e remover o objeto
-    const objetos = await db.findAll();
-    const objetoIndex = objetos.findIndex(o => o.id === parseInt(id));
-    
-    if (objetoIndex === -1) {
+    // Verificar se objeto existe
+    const objetoExistente = await dbUtils.findById(parseInt(id));
+    if (!objetoExistente) {
       return NextResponse.json(
         { error: 'Objeto não encontrado' },
         { status: 404 }
       );
     }
 
-    // Remover o objeto (em produção, você removeria a imagem do sistema de arquivos também)
-    objetos.splice(objetoIndex, 1);
+    // Excluir o objeto do banco de dados
+    await dbUtils.delete(parseInt(id));
     
     return NextResponse.json({
       message: 'Objeto excluído com sucesso!'
