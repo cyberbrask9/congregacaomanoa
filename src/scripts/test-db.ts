@@ -1,4 +1,4 @@
-import db from '@/lib/database';
+/* import db from '@/lib/database';
 
 async function testDatabase() {
   try {
@@ -25,7 +25,7 @@ async function testDatabase() {
       } else {
         console.log('ℹ️ Tabela "objetos" está vazia');
       }
-    } catch (error) {
+    } catch {
       console.log('ℹ️ Tabela "objetos" ainda não existe');
     }
 
@@ -90,4 +90,4 @@ async function testDatabase() {
 }
 
 // Executar o teste
-testDatabase();
+testDatabase(); */

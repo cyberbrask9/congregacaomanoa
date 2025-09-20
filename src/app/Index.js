@@ -4,7 +4,7 @@ import ListaObjetos from './components/ListaObjetos';
 import './globals.css';
 
 function Index() {
-  const [objetos, setObjetos] = useState([]);
+  const [, setObjetos] = useState([]);
 
   const handleObjetoCriado = (novoObjeto) => {
     setObjetos(prev => [...prev, novoObjeto]);

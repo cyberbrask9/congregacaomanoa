@@ -1,10 +1,10 @@
 import Database from 'better-sqlite3';
 import { join } from 'path';
+import fs from 'fs'; // ✅ Correto
 
 const dbPath = join(process.cwd(), 'data', 'database.sqlite');
 
 // Criar diretório data se não existir
-const fs = require('fs');
 const dataDir = join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });

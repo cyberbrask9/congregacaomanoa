@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises'; // ✅ CORRETO: import no topo
 import { join } from 'path';
 import { dbUtils } from '@/lib/utils';
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       const uploadDir = join(process.cwd(), 'public', 'uploads');
       
       // Criar diretório se não existir
-      const { mkdir } = require('fs/promises');
+      /* const { mkdir } = require('fs/promises'); */
       try {
         await mkdir(uploadDir, { recursive: true });
       } catch (error) {
@@ -155,8 +155,8 @@ export async function PUT(request: NextRequest) {
       const uploadDir = join(process.cwd(), 'public', 'uploads');
       
       // Criar diretório se não existir
-      const { mkdir } = require('fs/promises');
-      try {
+/*       const { mkdir } = require('fs/promises');ßßßßß
+ */      try {
         await mkdir(uploadDir, { recursive: true });
       } catch (error) {
         console.error('Erro ao criar diretório:', error);

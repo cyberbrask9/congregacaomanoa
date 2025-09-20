@@ -13,8 +13,9 @@ export const objetoService = {
         },
       });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Erro ao criar objeto');
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        throw new Error(errorMessage);
     }
   },
 
@@ -22,16 +23,18 @@ export const objetoService = {
     try {
       const response = await api.get('/objetos');
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Erro ao carregar objetos');
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        throw new Error(errorMessage);
     }
   },
   excluirObjeto: async (id: number) => {
     try {
       const response = await api.delete(`/objetos?id=${id}`);
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Erro ao excluir objeto');
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        throw new Error(errorMessage);
     }
   },
   // Atualizar objeto
@@ -43,8 +46,9 @@ export const objetoService = {
         },
       });
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Erro ao atualizar objeto');
+    } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+          throw new Error(errorMessage);
     }
   }
 };

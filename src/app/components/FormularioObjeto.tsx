@@ -108,8 +108,9 @@ const FormularioObjeto: React.FC<FormularioObjetoProps> = ({ onObjetoCriado }) =
         fileInput.value = '';
       }
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
     } finally {
       setLoading(false);
     }

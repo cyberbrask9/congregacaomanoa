@@ -6,7 +6,7 @@ import ListaObjetos from './components/ListaObjetos';
 import { Objeto } from '@/types';
 
 export default function Home() {
-  const [objetos, setObjetos] = useState<Objeto[]>([]);
+  const [, setObjetos] = useState<Objeto[]>([]);
 
   const handleObjetoCriado = (novoObjeto: Objeto) => {
     setObjetos(prev => [...prev, novoObjeto]);

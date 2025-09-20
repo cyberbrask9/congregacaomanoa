@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { objetoService } from '@/services/api';
 import { Objeto } from '@/types';
 import EditarObjetoModal from './EditarObjetoModal';
+import Image from 'next/image';
+
 
 const ListaObjetos: React.FC = () => {
   const [objetos, setObjetos] = useState<Objeto[]>([]);
@@ -24,8 +26,9 @@ const ListaObjetos: React.FC = () => {
       setLoading(true);
       const data = await objetoService.listarObjetos();
       setObjetos(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -71,8 +74,9 @@ const ListaObjetos: React.FC = () => {
       setShowConfirmacao(false);
       setObjetoParaExcluir(null);
       
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
     } finally {
       setExcluindoId(null);
     }
@@ -99,9 +103,7 @@ const ListaObjetos: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Confirmar Exclusão
             </h3>
-            <p className="text-gray-600 mb-6">
-              Deseja realmente excluir <strong>"{objetoParaExcluir.nome}"</strong>?
-            </p>
+            <p className="text-gray-600 mb-6">{`Deseja realmente excluir o objeto "${objetoParaExcluir.nome}"?`}</p>
             <div className="flex space-x-4 justify-end">
               <button
                 onClick={cancelarExclusao}
@@ -164,15 +166,11 @@ const ListaObjetos: React.FC = () => {
                 ))}
               </ul>
               {objeto.foto ? (
-                <img 
-                  src={objeto.foto} 
-                  alt={objeto.nome}
-                  className="w-full h-48 object-cover rounded-md mb-3"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gray-200 rounded-md mb-3 flex items-center justify-center">
-                  <span className="text-gray-500">Sem foto</span>
-                </div>
+                  <Image src={objeto.foto} alt={objeto.nome} width={400} height={192} className="w-full h-48 object-cover rounded-md mb-3" />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 rounded-md mb-3 flex items-center justify-center">
+                    <span className="text-gray-500">Sem foto</span>
+                  </div>
               )}
               <p className="text-xs text-gray-500">
                 Cadastrado em: {new Date(objeto.dataCriacao).toLocaleString('pt-BR')}

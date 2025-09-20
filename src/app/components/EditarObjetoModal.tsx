@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Objeto } from '@/types';
+import Image from 'next/image';
 
 interface EditarObjetoModalProps {
   objeto: Objeto | null;
@@ -25,7 +26,7 @@ const EditarObjetoModal: React.FC<EditarObjetoModalProps> = ({
   const [fotoPreview, setFotoPreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showConfirmacao, setShowConfirmacao] = useState(false);
+  const [, setShowConfirmacao] = useState(false);
 
   const opcoesAtribuicao = [
     { value: '', label: 'Selecione uma opção' },
@@ -128,17 +129,18 @@ const EditarObjetoModal: React.FC<EditarObjetoModalProps> = ({
       setShowConfirmacao(false);
       onClose();
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+  const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+  setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const cancelarAtualizacao = () => {
+  /* const cancelarAtualizacao = () => {
     setShowConfirmacao(false);
   };
-
+ */
   if (!isOpen || !objeto) return null;
 
   return (
@@ -239,11 +241,13 @@ const EditarObjetoModal: React.FC<EditarObjetoModalProps> = ({
               {fotoPreview && (
                 <div className="mt-4">
                   <p className="text-sm text-gray-600 mb-2">Preview:</p>
-                  <img 
+                 <Image 
                     src={fotoPreview} 
                     alt="Preview" 
-                    className="w-32 h-32 object-cover rounded-md border"
-                  />
+                    width={128}
+                    height={128}
+                    className="object-cover rounded-md border"
+                    />
                 </div>
               )}
             </div>
