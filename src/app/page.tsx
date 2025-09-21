@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import FormularioObjeto from './components/FormularioObjeto';
 import ListaObjetos from './components/ListaObjetos';
-import MenuTopBar from './components/TopBar';
 import MenuGaveta from './components/MenuGaveta';
 import { Objeto } from '@/types';
 
