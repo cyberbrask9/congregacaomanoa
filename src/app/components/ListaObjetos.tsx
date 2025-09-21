@@ -5,9 +5,24 @@ import { objetoService } from '@/services/api';
 import { Objeto } from '@/types';
 import EditarObjetoModal from './EditarObjetoModal';
 import Image from 'next/image';
-
+import Fab from '@mui/material/Fab';
+import AddIcon from '@mui/icons-material/Add';
+import FormularioObjeto from './FormularioObjeto';
 
 const ListaObjetos: React.FC = () => {
+  // Estado do formulário deve estar DENTRO do componente
+  const [formularioAberto, setFormularioAberto] = useState(false);
+  
+  // Funções para abrir/fechar formulário
+  const handleOpenForm = () => {
+    setFormularioAberto(true);
+  };
+
+  const handleCloseForm = () => {
+    setFormularioAberto(false);
+  };
+
+  // Restante dos estados
   const [objetos, setObjetos] = useState<Objeto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,6 +64,12 @@ const ListaObjetos: React.FC = () => {
       o.id === objetoAtualizado.id ? objetoAtualizado : o
     ));
   };
+
+  // Função para lidar com novo objeto criado
+  const handleObjetoCriado = (novoObjeto: Objeto) => {
+    setObjetos(prev => [...prev, novoObjeto]);
+    handleCloseForm(); // Fecha o formulário após criar
+  };
   
   const confirmarExclusao = (objeto: Objeto) => {
     setObjetoParaExcluir(objeto);
@@ -88,22 +109,32 @@ const ListaObjetos: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Lista de Pessoas</h2>
-      
-       {/* Modal de Edição */}
+        {/* Botão para adicionar pessoas */}      
+     
+      {/* Formulário Pop-up */}
+      {formularioAberto && (
+        <FormularioObjeto 
+          onObjetoCriado={handleObjetoCriado} // Adicione esta prop
+          onClose={handleCloseForm}
+        />
+      )}
+    
+      {/* Modal de Edição */}
       <EditarObjetoModal
         objeto={objetoParaEditar}
         isOpen={modalEditarAberto}
         onClose={fecharEdicao}
         onAtualizado={handleObjetoAtualizado}
       />
-      {/* Modal de Confirmação */}
+      
+      {/* Modal de Confirmação de Exclusão */}
       {showConfirmacao && objetoParaExcluir && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Confirmar Exclusão
             </h3>
-            <p className="text-gray-600 mb-6">{`Deseja realmente excluir o objeto "${objetoParaExcluir.nome}"?`}</p>
+            <p className="text-gray-600 mb-6">{`Deseja realmente excluir "${objetoParaExcluir.nome}"?`}</p>
             <div className="flex space-x-4 justify-end">
               <button
                 onClick={cancelarExclusao}
@@ -179,8 +210,24 @@ const ListaObjetos: React.FC = () => {
           ))}
         </div>
       )}
+      <div> <Fab  color="primary" 
+            ria-label="add" 
+            onClick={handleOpenForm}
+            sx={{
+                position: 'fixed',
+                bottom: 24, // ou top: 24 para ficar no topo
+                right: 24,  // ← Isso força o lado direito
+                zIndex: 1000
+             }}
+        >
+        <AddIcon />
+      </Fab></div>
     </div>
   );
 };
 
 export default ListaObjetos;
+
+
+
+

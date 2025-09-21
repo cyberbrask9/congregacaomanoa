@@ -23,6 +23,8 @@ import { PersonAdd, Article} from '@mui/icons-material';
 import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
 
+
+
 const drawerWidth = 240;
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
@@ -118,7 +120,11 @@ export default function MenuGaveta() {
           <Typography variant="h6" noWrap component="div">
             Congregação Manoa
           </Typography>
-           <LoginIcon />
+           <Box sx={{ marginLeft: 'auto' }}>
+          <IconButton color="inherit">
+             <LoginIcon />
+          </IconButton>
+    </Box>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -165,11 +171,15 @@ export default function MenuGaveta() {
               </ListItemButton>
             </ListItem>
           ))}
+          
         </List>
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
           <ListaObjetos />  
+           {/* Área de conteúdo dinâmico */}
+        
+      
       </Main>
     </Box>
   );
