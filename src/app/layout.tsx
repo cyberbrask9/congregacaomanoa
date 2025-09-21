@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Sistema de Gerenciamento de Objetos',
-  description: 'Sistema para gerenciar objetos com atribuições e privilégios',
+  title: 'Congregação Manoa',
+  description: 'Toda Groria a Jeová! ',
 };
 
 export default function RootLayout({

@@ -15,12 +15,20 @@
     "test:db:watch": "tsx watch src/scripts/test-db.ts"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.2.8",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/styled-engine-sc": "^7.3.2",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
     "next": "15.5.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-router-dom": "^7.9.1",
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
