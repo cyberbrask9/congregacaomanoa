@@ -221,183 +221,225 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
       </Paper>
 
       {/* Lista de projetos em layout vertical */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {projetosOrdenados.map((projeto) => (
-          <Card 
-            key={projeto.id}
-            elevation={2}
+<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+  {projetosOrdenados.map((projeto) => (
+    <Card 
+      key={projeto.id}
+      elevation={1}
+      sx={{ 
+        width: '100%',
+        display: 'flex',
+        // Torna a direção do layout responsiva
+        flexDirection: {
+          xs: 'column', // Em telas extra-pequenas, os itens ficam em coluna (vertical)
+          sm: 'row',    // Em telas pequenas ou maiores, os itens ficam em linha (horizontal)
+        },
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          elevation: 0.5,
+          transform: 'translateY(-1px)'
+        }
+      }}
+    >
+      {/* Imagem */}
+      {/* Ajusta o tamanho da imagem para telas menores */}
+      <Box 
+        sx={{ 
+          height: { xs: 200, sm: 150 }, // Altura de 200px em mobile e 150px em desktop
+          width: { xs: '100%', sm: 150 }, // 100% da largura em mobile
+          flexShrink: 0 
+        }}
+      >
+        {projeto.img ? (
+          <Box 
             sx={{ 
+              position: 'relative', 
               width: '100%',
+              height: '100%', // Adiciona altura para que a imagem ocupe o espaço
+              cursor: 'pointer'
+            }}
+            onClick={() => setImagemExpandida(projeto.img!)}
+          >
+            <Image
+              src={projeto.img}
+              alt={`Território ${projeto.numero}`}
+              fill
+              style={{ objectFit: 'cover' }}
+            />
+            <IconButton
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                }
+              }}
+              size="small"
+            >
+              <ExpandIcon />
+            </IconButton>
+          </Box>
+        ) : (
+          <Box 
+            sx={{ 
+              height: '100%',
               display: 'flex',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                elevation: 4,
-                transform: 'translateY(-2px)'
-              }
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'grey.100'
             }}
           >
-            {/* Imagem (opcional) */}
-            <Box sx={{ width: 200, flexShrink: 0 }}>
-              {projeto.img ? (
-                <Box 
-                  sx={{ 
-                    position: 'relative', 
-                    height: '100%',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => setImagemExpandida(projeto.img!)}
-                >
-                  <Image
-                    src={projeto.img}
-                    alt={`Território ${projeto.numero}`}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                  />
-                  <IconButton
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(0,0,0,0.5)',
-                      color: 'white',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                      }
-                    }}
-                    size="small"
-                  >
-                    <ExpandIcon />
-                  </IconButton>
-                </Box>
-              ) : (
-                <Box 
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'grey.100'
-                  }}
-                >
-                  <ImageIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                </Box>
-              )}
-            </Box>
-
-            {/* Conteúdo do card */}
-            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Typography variant="h6" component="h3" fontWeight="bold">
-                    <NumbersIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                    Território Nº{projeto.numero}
-                  </Typography>
-                  <Chip 
-                    label={getStatusText(projeto.concluido)}
-                    color={getStatusColor(projeto.concluido)}
-                    size="small"
-                  />
-                </Box>
-                
-                {/* Descrição (opcional) */}
-                {projeto.descricao ? (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
-                    sx={{ 
-                      mb: 2,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {projeto.descricao}
-                  </Typography>
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    color="text.disabled" 
-                    sx={{ mb: 2, fontStyle: 'italic' }}
-                  >
-                    Sem descrição
-                  </Typography>
-                )}
-                
-                <Box sx={{ spaceY: 1 }}>
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {projeto.responsavel}
-                    </Typography>
-                  </Box>
-                  
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Início: {formatarData(projeto.datainicio)}
-                    </Typography>
-                  </Box>
-                  
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography 
-                      variant="body2" 
-                      color={projeto.datafim ? 'text.secondary' : 'text.disabled'}
-                    >
-                      Fim: {formatarData(projeto.datafim)}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-
-              {/* Ações do card */}
-              <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
-                <IconButton 
-                  size="small" 
-                  color="primary"
-                  onClick={() => abrirEdicao(projeto)}
-                  title="Editar território"
-                >
-                  <EditIcon />
-                </IconButton>
-                <Typography variant="body2" color="primary">
-                  Abrir
-                </Typography>
-
-                <Divider orientation="vertical" flexItem />
-
-                <IconButton 
-                  size="small" 
-                  color="success"
-                  onClick={() => setProjetoConcluindo(projeto)}
-                  disabled={projeto.concluido}
-                  title="Concluir território"
-                >
-                  <CheckCircleIcon />
-                </IconButton>
-                <Typography variant="body2" color="success.main">
-                  Concluir
-                </Typography>
-
-                <Divider orientation="vertical" flexItem />
-
-                <IconButton 
-                  size="small" 
-                  color="error"
-                  onClick={() => setProjetoExcluindo(projeto)}
-                  title="Excluir território"
-                >
-                  <DeleteIcon />
-                </IconButton>
-                <Typography variant="body2" color="error.main">
-                  Excluir
-                </Typography>
-              </CardActions>
-            </Box>
-          </Card>
-        ))}
+            <ImageIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+          </Box>
+        )}
       </Box>
+
+      {/* Conteúdo do card */}
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}> {/* Diminui o padding em mobile */}
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+            <Typography variant="h6" component="h3" fontWeight="bold">
+              <NumbersIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
+              Território Nº{projeto.numero}
+            </Typography>
+            <Chip 
+              label={getStatusText(projeto.concluido)}
+              color={getStatusColor(projeto.concluido)}
+              size="small"
+            />
+          </Box>
+          
+          {/* Descrição (opcional) */}
+          {projeto.descricao ? (
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                mb: 2,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}
+            >
+              {projeto.descricao}
+            </Typography>
+          ) : (
+            <Typography 
+              variant="body2" 
+              color="text.disabled" 
+              sx={{ mb: 2, fontStyle: 'italic' }}
+            >
+              Sem descrição
+            </Typography>
+          )}
+          
+          {/* Ajusta o espaçamento vertical usando 'flexDirection: 'column'' e 'gap' */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                {projeto.responsavel}
+              </Typography>
+            </Box>
+            
+            <Box display="flex" alignItems="center" gap={1}>
+              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                Início: {formatarData(projeto.datainicio)}
+              </Typography>
+            </Box>
+            
+            <Box display="flex" alignItems="center" gap={1}>
+              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography 
+                variant="body2" 
+                color={projeto.datafim ? 'text.secondary' : 'text.disabled'}
+              >
+                Fim: {formatarData(projeto.datafim)}
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+
+        {/* Ações do card */}
+        <CardActions sx={{ p: { xs: 1, sm: 2 }, pt: { xs: 0, sm: 0 }, gap: 1, justifyContent: 'flex-end' }}>
+          <Button 
+            startIcon={<EditIcon />} 
+            size="small" 
+            color="primary"
+            onClick={() => abrirEdicao(projeto)}
+            title="Editar território"
+            sx={{ display: { xs: 'none', sm: 'flex' } }} // Oculta o texto em mobile
+          >
+            <Typography variant="body2" color="primary">Abrir</Typography>
+          </Button>
+
+          <IconButton 
+            size="small" 
+            color="primary"
+            onClick={() => abrirEdicao(projeto)}
+            title="Editar território"
+            sx={{ display: { xs: 'flex', sm: 'none' } }} // Mostra o ícone em mobile
+          >
+            <EditIcon />
+          </IconButton>
+          
+          <Divider orientation="vertical" flexItem />
+
+          <Button 
+            startIcon={<CheckCircleIcon />} 
+            size="small" 
+            color="success"
+            onClick={() => setProjetoConcluindo(projeto)}
+            disabled={projeto.concluido}
+            title="Concluir território"
+            sx={{ display: { xs: 'none', sm: 'flex' } }}
+          >
+            <Typography variant="body2" color="success.main">Concluir</Typography>
+          </Button>
+          
+          <IconButton 
+            size="small" 
+            color="success"
+            onClick={() => setProjetoConcluindo(projeto)}
+            disabled={projeto.concluido}
+            title="Concluir território"
+            sx={{ display: { xs: 'flex', sm: 'none' } }}
+          >
+            <CheckCircleIcon />
+          </IconButton>
+
+          <Divider orientation="vertical" flexItem />
+
+          <Button 
+            startIcon={<DeleteIcon />} 
+            size="small" 
+            color="error"
+            onClick={() => setProjetoExcluindo(projeto)}
+            title="Excluir território"
+            sx={{ display: { xs: 'none', sm: 'flex' } }}
+          >
+            <Typography variant="body2" color="error.main">Excluir</Typography>
+          </Button>
+          
+          <IconButton 
+            size="small" 
+            color="error"
+            onClick={() => setProjetoExcluindo(projeto)}
+            title="Excluir território"
+            sx={{ display: { xs: 'flex', sm: 'none' } }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </CardActions>
+      </Box>
+    </Card>
+  ))}
+</Box>
 
       {projetos.length === 0 && !loading && (
         <Paper elevation={0} sx={{ p: 4, textAlign: 'center' }}>
