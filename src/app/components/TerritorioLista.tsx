@@ -9,6 +9,7 @@ import {
   Card,
   CardMedia,
   CardContent,
+  CardActions,
   Chip,
   MenuItem,
   FormControl,
@@ -16,9 +17,15 @@ import {
   Select,
   SelectChangeEvent,
   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   CircularProgress,
-  Alert
+  Alert,
+  Button,
+  TextField,
+  Divider
 } from '@mui/material';
 import {
   Expand as ExpandIcon,
@@ -26,33 +33,45 @@ import {
   CalendarMonth as CalendarIcon,
   Person as PersonIcon,
   Numbers as NumbersIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CheckCircle as CheckCircleIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import Image from 'next/image';
 import { Projeto, Ordenacao } from '@/types/projeto';
+import { projetoService } from '@/services/api';
 
 interface ProjetoListProps {
   projetos: Projeto[];
   loading?: boolean;
   error?: string;
+  onProjetoAtualizado: () => void;
 }
 
-export default function TerritorioLista({ projetos, loading = false, error }: ProjetoListProps) {
+export default function TerritorioLista({ projetos, loading = false, error, onProjetoAtualizado }: ProjetoListProps) {
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('datafim_desc');
   const [imagemExpandida, setImagemExpandida] = useState<string | null>(null);
+  const [projetoEditando, setProjetoEditando] = useState<Projeto | null>(null);
+  const [projetoExcluindo, setProjetoExcluindo] = useState<Projeto | null>(null);
+  const [projetoConcluindo, setProjetoConcluindo] = useState<Projeto | null>(null);
+  const [dataConclusao, setDataConclusao] = useState('');
+  const [editandoResponsavel, setEditandoResponsavel] = useState('');
+  const [editandoDataInicio, setEditandoDataInicio] = useState('');
+  const [salvando, setSalvando] = useState(false);
 
   // Função para ordenar projetos - tratar projetos sem datafim
   const projetosOrdenados = [...projetos].sort((a, b) => {
     switch (ordenacao) {
       case 'datafim_asc':
-        // Projetos sem datafim vão para o final
         if (!a.datafim && !b.datafim) return 0;
         if (!a.datafim) return 1;
         if (!b.datafim) return -1;
         return new Date(a.datafim).getTime() - new Date(b.datafim).getTime();
       
       case 'datafim_desc':
-        // Projetos sem datafim vão para o final
         if (!a.datafim && !b.datafim) return 0;
         if (!a.datafim) return 1;
         if (!b.datafim) return -1;
@@ -86,6 +105,74 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
     return concluido ? 'Finalizado' : 'Em andamento';
   };
 
+  // Função para editar projeto
+  const abrirEdicao = (projeto: Projeto) => {
+    setProjetoEditando(projeto);
+    setEditandoResponsavel(projeto.responsavel);
+    setEditandoDataInicio(projeto.datainicio);
+  };
+
+  const salvarEdicao = async () => {
+    if (!projetoEditando) return;
+
+    setSalvando(true);
+    try {
+      await projetoService.atualizarProjeto(projetoEditando.id!, {
+        responsavel: editandoResponsavel,
+        datainicio: editandoDataInicio,
+        datafim: null, // Excluir datafim
+        concluido: false // Definir como não concluído
+      });
+      
+      setProjetoEditando(null);
+      onProjetoAtualizado();
+    } catch (error) {
+      console.error('Erro ao editar projeto:', error);
+      alert('Erro ao editar projeto');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // Função para excluir projeto
+  const confirmarExclusao = async () => {
+    if (!projetoExcluindo) return;
+
+    setSalvando(true);
+    try {
+      await projetoService.deletarProjeto(projetoExcluindo.id!);
+      setProjetoExcluindo(null);
+      onProjetoAtualizado();
+    } catch (error) {
+      console.error('Erro ao excluir projeto:', error);
+      alert('Erro ao excluir projeto');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // Função para concluir projeto
+  const concluirProjeto = async () => {
+    if (!projetoConcluindo || !dataConclusao) return;
+
+    setSalvando(true);
+    try {
+      await projetoService.atualizarProjeto(projetoConcluindo.id!, {
+        datafim: dataConclusao,
+        concluido: true
+      });
+      
+      setProjetoConcluindo(null);
+      setDataConclusao('');
+      onProjetoAtualizado();
+    } catch (error) {
+      console.error('Erro ao concluir projeto:', error);
+      alert('Erro ao concluir projeto');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
@@ -108,11 +195,11 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
           <Typography variant="h6" component="h2">
-            Projetos Cadastrados
+            Territórios Cadastrados
           </Typography>
           
           <Chip 
-            label={`${projetos.length} projeto(s)`} 
+            label={`${projetos.length} território(s)`} 
             variant="outlined" 
             size="small" 
           />
@@ -133,36 +220,36 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
         </Box>
       </Paper>
 
-      {/* Lista de projetos */}
-      <Grid container spacing={3}>
+      {/* Lista de projetos em layout vertical */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {projetosOrdenados.map((projeto) => (
-          <Grid item xs={12} sm={6} md={4} key={projeto.id}>
-            <Card 
-              elevation={2}
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  elevation: 4,
-                  transform: 'translateY(-4px)'
-                }
-              }}
-            >
-              {/* Imagem (opcional) */}
+          <Card 
+            key={projeto.id}
+            elevation={2}
+            sx={{ 
+              width: '100%',
+              display: 'flex',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                elevation: 4,
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            {/* Imagem (opcional) */}
+            <Box sx={{ width: 200, flexShrink: 0 }}>
               {projeto.img ? (
                 <Box 
                   sx={{ 
                     position: 'relative', 
-                    height: 200,
+                    height: '100%',
                     cursor: 'pointer'
                   }}
                   onClick={() => setImagemExpandida(projeto.img!)}
                 >
                   <Image
                     src={projeto.img}
-                    alt={`Projeto ${projeto.numero}`}
+                    alt={`Território ${projeto.numero}`}
                     fill
                     style={{ objectFit: 'cover' }}
                   />
@@ -185,7 +272,7 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
               ) : (
                 <Box 
                   sx={{ 
-                    height: 200,
+                    height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -195,13 +282,15 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
                   <ImageIcon sx={{ fontSize: 48, color: 'grey.400' }} />
                 </Box>
               )}
-              
-              {/* Informações do projeto */}
+            </Box>
+
+            {/* Conteúdo do card */}
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flexGrow: 1, p: 3 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                   <Typography variant="h6" component="h3" fontWeight="bold">
                     <NumbersIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                    #{projeto.numero}
+                    Território Nº{projeto.numero}
                   </Typography>
                   <Chip 
                     label={getStatusText(projeto.concluido)}
@@ -261,21 +350,187 @@ export default function TerritorioLista({ projetos, loading = false, error }: Pr
                   </Box>
                 </Box>
               </CardContent>
-            </Card>
-          </Grid>
+
+              {/* Ações do card */}
+              <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
+                <IconButton 
+                  size="small" 
+                  color="primary"
+                  onClick={() => abrirEdicao(projeto)}
+                  title="Editar território"
+                >
+                  <EditIcon />
+                </IconButton>
+                <Typography variant="body2" color="primary">
+                  Abrir
+                </Typography>
+
+                <Divider orientation="vertical" flexItem />
+
+                <IconButton 
+                  size="small" 
+                  color="success"
+                  onClick={() => setProjetoConcluindo(projeto)}
+                  disabled={projeto.concluido}
+                  title="Concluir território"
+                >
+                  <CheckCircleIcon />
+                </IconButton>
+                <Typography variant="body2" color="success.main">
+                  Concluir
+                </Typography>
+
+                <Divider orientation="vertical" flexItem />
+
+                <IconButton 
+                  size="small" 
+                  color="error"
+                  onClick={() => setProjetoExcluindo(projeto)}
+                  title="Excluir território"
+                >
+                  <DeleteIcon />
+                </IconButton>
+                <Typography variant="body2" color="error.main">
+                  Excluir
+                </Typography>
+              </CardActions>
+            </Box>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
       {projetos.length === 0 && !loading && (
         <Paper elevation={0} sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary" gutterBottom>
-            Nenhum projeto cadastrado
+            Nenhum território cadastrado
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Use o formulário acima para cadastrar seu primeiro projeto.
+            Use o formulário acima para cadastrar seu primeiro território.
           </Typography>
         </Paper>
       )}
+
+      {/* Modal para editar projeto */}
+      <Dialog open={!!projetoEditando} onClose={() => setProjetoEditando(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <EditIcon />
+            Editar Território Nº{projetoEditando?.numero}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Responsável"
+              value={editandoResponsavel}
+              onChange={(e) => setEditandoResponsavel(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+            <TextField
+              label="Data de Início"
+              type="date"
+              value={editandoDataInicio}
+              onChange={(e) => setEditandoDataInicio(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              ⓘ A data de fim será removida e o status será alterado para "Em andamento"
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProjetoEditando(null)} disabled={salvando}>
+            <CancelIcon sx={{ mr: 1 }} />
+            Cancelar
+          </Button>
+          <Button 
+            onClick={salvarEdicao} 
+            variant="contained" 
+            disabled={salvando || !editandoResponsavel || !editandoDataInicio}
+          >
+            {salvando ? <CircularProgress size={20} /> : <SaveIcon sx={{ mr: 1 }} />}
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para confirmar exclusão */}
+      <Dialog open={!!projetoExcluindo} onClose={() => setProjetoExcluindo(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Deseja realmente excluir o território Nº{projetoExcluindo?.numero}?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProjetoExcluindo(null)} disabled={salvando}>
+            <CancelIcon sx={{ mr: 1 }} />
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmarExclusao} 
+            variant="contained" 
+            color="error"
+            disabled={salvando}
+          >
+            {salvando ? <CircularProgress size={20} /> : <DeleteIcon sx={{ mr: 1 }} />}
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para concluir projeto */}
+      <Dialog open={!!projetoConcluindo} onClose={() => setProjetoConcluindo(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <CheckCircleIcon />
+            Concluir Território Nº{projetoConcluindo?.numero}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              label="Data de Conclusão"
+              type="date"
+              value={dataConclusao}
+              onChange={(e) => setDataConclusao(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              ⓘ Ao concluir, o território será marcado como "Finalizado"
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProjetoConcluindo(null)} disabled={salvando}>
+            <CancelIcon sx={{ mr: 1 }} />
+            Cancelar
+          </Button>
+          <Button 
+            onClick={concluirProjeto} 
+            variant="contained" 
+            color="success"
+            disabled={salvando || !dataConclusao}
+          >
+            {salvando ? <CircularProgress size={20} /> : <CheckCircleIcon sx={{ mr: 1 }} />}
+            Concluir
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal para imagem expandida */}
       <Dialog

@@ -2,12 +2,13 @@
 import MenuGaveta from './components/MenuGaveta';
 import { Objeto } from '@/types';
 //
+
 import { useState, useEffect } from 'react';
 import { Container, Box, Typography, CircularProgress } from '@mui/material';
 import { projetoService } from '@/services/api';
 import { Projeto } from '@/types/projeto';
-import TerritorioLista from './components/TerritorioLista';
 import Territorios from './components/Territorios';
+import TerritorioLista from './components/TerritorioLista';
 
 export default function ProjetosPage() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
@@ -39,7 +40,7 @@ export default function ProjetosPage() {
         fontWeight="bold"
         color="primary"
       >
-        Gerenciamento de Projetos
+        Gerenciamento de Territórios
       </Typography>
       
       <Box sx={{ mb: 4 }}>
@@ -50,6 +51,7 @@ export default function ProjetosPage() {
         projetos={projetos} 
         loading={loading}
         error={error}
+        onProjetoAtualizado={carregarProjetos}
       />
     </Container>
   );
