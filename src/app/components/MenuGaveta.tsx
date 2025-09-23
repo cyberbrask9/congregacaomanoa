@@ -17,19 +17,17 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import { PersonAdd, Article} from '@mui/icons-material';
-//...
+import { PersonAdd, Article } from '@mui/icons-material';
 import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
-
-
+import LeitoresSentinelaFixed from './LeitoresSentinelaFixed';
 
 const drawerWidth = 240;
 
+// ADICIONE A DEFINIÇÃO DO COMPONENTE MAIN AQUI
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   open?: boolean;
-}>(({ theme }) => ({
+}>(({ theme, open }) => ({
   flexGrow: 1,
   padding: theme.spacing(3),
   transition: theme.transitions.create('margin', {
@@ -37,18 +35,13 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
     duration: theme.transitions.duration.leavingScreen,
   }),
   marginLeft: `-${drawerWidth}px`,
-  variants: [
-    {
-      props: ({ open }) => open,
-      style: {
-        transition: theme.transitions.create('margin', {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-        marginLeft: 0,
-      },
-    },
-  ],
+  ...(open && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
 }));
 
 interface AppBarProps extends MuiAppBarProps {
@@ -57,31 +50,25 @@ interface AppBarProps extends MuiAppBarProps {
 
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme }) => ({
+})<AppBarProps>(({ theme, open }) => ({
   transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  variants: [
-    {
-      props: ({ open }) => open,
-      style: {
-        width: `calc(100% - ${drawerWidth}px)`,
-        marginLeft: `${drawerWidth}px`,
-        transition: theme.transitions.create(['margin', 'width'], {
-          easing: theme.transitions.easing.easeOut,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-      },
-    },
-  ],
+  ...(open && {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: `${drawerWidth}px`,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
 }));
 
 const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
   justifyContent: 'flex-end',
 }));
@@ -89,6 +76,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 export default function MenuGaveta() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+  const [componenteAtual, setComponenteAtual] = React.useState('listaObjetos');
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -96,6 +84,30 @@ export default function MenuGaveta() {
 
   const handleDrawerClose = () => {
     setOpen(false);
+  };
+
+  const handleMenuClick = (componente: string) => {
+    setComponenteAtual(componente);
+    handleDrawerClose();
+  };
+
+  const renderizarComponente = () => {
+    switch (componenteAtual) {
+      case 'listaObjetos':
+        return <ListaObjetos />;
+      case 'leitorASentinela':
+        return <LeitoresSentinelaFixed />;
+      case 'opcao1':
+        return <div>Opção 1 - Componente em desenvolvimento</div>;
+      case 'opcao2':
+        return <div>Opção 2 - Componente em desenvolvimento</div>;
+      case 'teste1':
+        return <div>Teste 1 - Componente em desenvolvimento</div>;
+      case 'teste2':
+        return <div>Teste 2 - Componente em desenvolvimento</div>;
+      default:
+        return <ListaObjetos />;
+    }
   };
 
   return (
@@ -108,23 +120,21 @@ export default function MenuGaveta() {
             aria-label="open drawer"
             onClick={handleDrawerOpen}
             edge="start"
-            sx={[
-              {
-                mr: 2,
-              },
-              open && { display: 'none' },
-            ]}
+            sx={{
+              mr: 2,
+              ...(open && { display: 'none' }),
+            }}
           >
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
             Congregação Manoa
           </Typography>
-           <Box sx={{ marginLeft: 'auto' }}>
-          <IconButton color="inherit">
-             <LoginIcon />
-          </IconButton>
-    </Box>
+          <Box sx={{ marginLeft: 'auto' }}>
+        {/*     <IconButton color="inherit"> */} 
+              <LoginIcon />
+{/*    removido para correção </IconButton> */}
+          </Box>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -144,42 +154,67 @@ export default function MenuGaveta() {
           <IconButton onClick={handleDrawerClose}>
             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
-          
         </DrawerHeader>
         <Divider />
         <List>
-          {['Cadastrar Pessoas', 'Opção1','Opção2'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <PersonAdd /> : <PersonAdd />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('listaObjetos')}>
+              <ListItemIcon>
+                <PersonAdd />
+              </ListItemIcon>
+              <ListItemText primary="Cadastrar Pessoas" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('opcao1')}>
+              <ListItemIcon>
+                <PersonAdd />
+              </ListItemIcon>
+              <ListItemText primary="Opção1" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('opcao2')}>
+              <ListItemIcon>
+                <PersonAdd />
+              </ListItemIcon>
+              <ListItemText primary="Opção2" />
+            </ListItemButton>
+          </ListItem>
         </List>
         <Divider />
         <List>
-          {['Leirto A Sentinela', 'Teste1', 'Teste2'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <Article /> : <Article />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-          
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('leitorASentinela')}>
+              <ListItemIcon>
+                <Article />
+              </ListItemIcon>
+              <ListItemText primary="Leitor A Sentinela" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('teste1')}>
+              <ListItemIcon>
+                <Article />
+              </ListItemIcon>
+              <ListItemText primary="Teste1" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => handleMenuClick('teste2')}>
+              <ListItemIcon>
+                <Article />
+              </ListItemIcon>
+              <ListItemText primary="Teste2" />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
+      
+      {/* AGORA O COMPONENTE MAIN ESTÁ DEFINIDO E FUNCIONARÁ */}
       <Main open={open}>
         <DrawerHeader />
-          <ListaObjetos />  
-           {/* Área de conteúdo dinâmico */}
-        
-      
+        {renderizarComponente()}
       </Main>
     </Box>
   );

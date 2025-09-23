@@ -1,13 +1,104 @@
+// services/api.ts
 import axios from 'axios';
+import { Projeto } from '@/types/projeto';
 
+// implementação gestão de territórios
+const API_URL = '/api';
+
+export const projetoService = {
+  async listarProjetos(): Promise<Projeto[]> {
+    const response = await fetch(`${API_URL}/projetos`, {
+      cache: 'no-store' // Para garantir dados sempre atualizados
+    });
+    if (!response.ok) throw new Error('Erro ao buscar projetos');
+    return response.json();
+  },
+
+  async cadastrarProjeto(projeto: Omit<Projeto, 'id'>): Promise<Projeto> {
+    const response = await fetch(`${API_URL}/projetos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(projeto),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao cadastrar projeto');
+    }
+    return response.json();
+  },
+
+  async uploadImagem(file: File): Promise<{ url: string }> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erro no upload:', errorText);
+      
+      let errorMessage = 'Erro ao fazer upload da imagem';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // Se não for JSON, usar o texto original
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Erro no upload:', error);
+    throw error;
+  }
+},
+
+  async atualizarProjeto(id: number, projeto: Partial<Projeto>): Promise<Projeto> {
+    const response = await fetch(`${API_URL}/projetos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(projeto),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao atualizar projeto');
+    }
+    return response.json();
+  },
+
+  async deletarProjeto(id: number): Promise<void> {
+    const response = await fetch(`${API_URL}/projetos/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao deletar projeto');
+    }
+  }
+};
+// fim gestão território
+
+
+//antes da implementação mapa
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api', // Isso já inclui /api
 });
 
 export const objetoService = {
   criarObjeto: async (formData: FormData) => {
     try {
-      const response = await api.post('/objetos', formData, {
+      const response = await api.post('/objetos', formData, { // ✅ Correto: /objetos
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -21,26 +112,27 @@ export const objetoService = {
 
   listarObjetos: async () => {
     try {
-      const response = await api.get('/objetos');
+      const response = await api.get('/objetos'); // ✅ Correto: /objetos
       return response.data;
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         throw new Error(errorMessage);
     }
   },
+  
   excluirObjeto: async (id: number) => {
     try {
-      const response = await api.delete(`/objetos?id=${id}`);
+      const response = await api.delete(`/objetos?id=${id}`); // ✅ Correto: /objetos
       return response.data;
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         throw new Error(errorMessage);
     }
   },
-  // Atualizar objeto
+  
   atualizarObjeto: async (id: number, formData: FormData) => {
     try {
-      const response = await api.put(`/objetos`, formData, {
+      const response    = await api.put(`/objetos`, formData, { // ✅ Correto: /objetos
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -49,6 +141,19 @@ export const objetoService = {
     } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
           throw new Error(errorMessage);
+    }
+  }
+};
+
+// endpoint para leito a sentinela 
+export const leitorService = {
+  processarLeitores: async (mes: number, ano: number) => {
+    try {
+      const response = await api.post('/objetos', { mes, ano });
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
     }
   }
 };

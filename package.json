@@ -15,15 +15,18 @@
     "test:db:watch": "tsx watch src/scripts/test-db.ts"
   },
   "dependencies": {
+    "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource/roboto": "^5.2.8",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
     "@mui/styled-engine-sc": "^7.3.2",
+    "@mui/x-date-pickers": "^8.11.3",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
