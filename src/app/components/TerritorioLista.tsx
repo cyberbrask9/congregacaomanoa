@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
   Typography,
-  Grid,
   Card,
   CardMedia,
   CardContent,
@@ -38,11 +37,13 @@ import {
   Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import Image from 'next/image';
 import { Projeto, Ordenacao } from '@/types/projeto';
 import { projetoService } from '@/services/api';
+import Territorios from './Territorios';
 
 interface ProjetoListProps {
   projetos: Projeto[];
@@ -51,7 +52,7 @@ interface ProjetoListProps {
   onProjetoAtualizado: () => void;
 }
 
-export default function TerritorioLista({ projetos, loading = false, error, onProjetoAtualizado }: ProjetoListProps) {
+export default function TerritorioLista({ projetos = [], loading = false, error, onProjetoAtualizado }: ProjetoListProps) {
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('datafim_desc');
   const [imagemExpandida, setImagemExpandida] = useState<string | null>(null);
   const [projetoEditando, setProjetoEditando] = useState<Projeto | null>(null);
@@ -61,11 +62,17 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
   const [editandoResponsavel, setEditandoResponsavel] = useState('');
   const [editandoDataInicio, setEditandoDataInicio] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [dialogCadastroAberto, setDialogCadastroAberto] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Função para ordenar projetos - tratar projetos sem datafim
-  const projetosOrdenados = [...projetos].sort((a, b) => {
+  const projetosOrdenados = Array.isArray(projetos) ? [...projetos].sort((a, b) => {
     switch (ordenacao) {
-      case 'datafim_asc':
+      case 'datafim_asc': 
         if (!a.datafim && !b.datafim) return 0;
         if (!a.datafim) return 1;
         if (!b.datafim) return -1;
@@ -86,7 +93,7 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
       default:
         return 0;
     }
-  });
+  }) : [];
 
   const handleOrdenacaoChange = (event: SelectChangeEvent) => {
     setOrdenacao(event.target.value as Ordenacao);
@@ -105,6 +112,22 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
     return concluido ? 'Finalizado' : 'Em andamento';
   };
 
+  // Função para abrir o pop-up de cadastro
+  const abrirCadastro = () => {
+    setDialogCadastroAberto(true);
+  };
+
+  // Função para fechar o pop-up de cadastro
+  const fecharCadastro = () => {
+    setDialogCadastroAberto(false);
+  };
+
+  // Função chamada quando um território é cadastrado com sucesso
+  const handleTerritorioCadastrado = () => {
+    fecharCadastro();
+    onProjetoAtualizado(); // Recarregar a lista
+  };
+
   // Função para editar projeto
   const abrirEdicao = (projeto: Projeto) => {
     setProjetoEditando(projeto);
@@ -120,8 +143,8 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
       await projetoService.atualizarProjeto(projetoEditando.id!, {
         responsavel: editandoResponsavel,
         datainicio: editandoDataInicio,
-        datafim: null, // Excluir datafim
-        concluido: false // Definir como não concluído
+        datafim: null,
+        concluido: false
       });
       
       setProjetoEditando(null);
@@ -191,7 +214,7 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
 
   return (
     <Box>
-      {/* Filtros de ordenação */}
+      {/* Filtros de ordenação com botão de cadastro */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
           <Typography variant="h6" component="h2">
@@ -204,7 +227,17 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
             size="small" 
           />
 
-          <FormControl sx={{ minWidth: 200, ml: 'auto' }} size="small">
+          {/* Botão Cadastrar Território */}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirCadastro}
+            sx={{ ml: 'auto' }}
+          >
+            Cadastrar Território
+          </Button>
+
+          <FormControl sx={{ minWidth: 200 }} size="small">
             <InputLabel>Ordenar por</InputLabel>
             <Select
               value={ordenacao}
@@ -221,225 +254,222 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
       </Paper>
 
       {/* Lista de projetos em layout vertical */}
-<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-  {projetosOrdenados.map((projeto) => (
-    <Card 
-      key={projeto.id}
-      elevation={1}
-      sx={{ 
-        width: '100%',
-        display: 'flex',
-        // Torna a direção do layout responsiva
-        flexDirection: {
-          xs: 'column', // Em telas extra-pequenas, os itens ficam em coluna (vertical)
-          sm: 'row',    // Em telas pequenas ou maiores, os itens ficam em linha (horizontal)
-        },
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          elevation: 0.5,
-          transform: 'translateY(-1px)'
-        }
-      }}
-    >
-      {/* Imagem */}
-      {/* Ajusta o tamanho da imagem para telas menores */}
-      <Box 
-        sx={{ 
-          height: { xs: 200, sm: 150 }, // Altura de 200px em mobile e 150px em desktop
-          width: { xs: '100%', sm: 150 }, // 100% da largura em mobile
-          flexShrink: 0 
-        }}
-      >
-        {projeto.img ? (
-          <Box 
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {projetosOrdenados.map((projeto) => (
+          <Card 
+            key={projeto.id}
+            elevation={1}
             sx={{ 
-              position: 'relative', 
               width: '100%',
-              height: '100%', // Adiciona altura para que a imagem ocupe o espaço
-              cursor: 'pointer'
-            }}
-            onClick={() => setImagemExpandida(projeto.img!)}
-          >
-            <Image
-              src={projeto.img}
-              alt={`Território ${projeto.numero}`}
-              fill
-              style={{ objectFit: 'cover' }}
-            />
-            <IconButton
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                }
-              }}
-              size="small"
-            >
-              <ExpandIcon />
-            </IconButton>
-          </Box>
-        ) : (
-          <Box 
-            sx={{ 
-              height: '100%',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'grey.100'
+              flexDirection: {
+                xs: 'column',
+                sm: 'row',
+              },
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                elevation: 0.5,
+                transform: 'translateY(-1px)'
+              }
             }}
           >
-            <ImageIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-          </Box>
-        )}
-      </Box>
-
-      {/* Conteúdo do card */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}> {/* Diminui o padding em mobile */}
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            <Typography variant="h6" component="h3" fontWeight="bold">
-              <NumbersIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-              Território Nº{projeto.numero}
-            </Typography>
-            <Chip 
-              label={getStatusText(projeto.concluido)}
-              color={getStatusColor(projeto.concluido)}
-              size="small"
-            />
-          </Box>
-          
-          {/* Descrição (opcional) */}
-          {projeto.descricao ? (
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
+            {/* Imagem */}
+            <Box 
               sx={{ 
-                mb: 2,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
+                height: { xs: 200, sm: 150 },
+                width: { xs: '100%', sm: 150 },
+                flexShrink: 0 
               }}
             >
-              {projeto.descricao}
-            </Typography>
-          ) : (
-            <Typography 
-              variant="body2" 
-              color="text.disabled" 
-              sx={{ mb: 2, fontStyle: 'italic' }}
-            >
-              Sem descrição
-            </Typography>
-          )}
-          
-          {/* Ajusta o espaçamento vertical usando 'flexDirection: 'column'' e 'gap' */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {projeto.responsavel}
-              </Typography>
+              {projeto.img ? (
+                <Box 
+                  sx={{ 
+                    position: 'relative', 
+                    width: '100%',
+                    height: '100%',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setImagemExpandida(projeto.img!)}
+                >
+                  <Image
+                    src={projeto.img}
+                    alt={`Território ${projeto.numero}`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+                  <IconButton
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                      }
+                    }}
+                    size="small"
+                  >
+                    <ExpandIcon />
+                  </IconButton>
+                </Box>
+              ) : (
+                <Box 
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'grey.100'
+                  }}
+                >
+                  <ImageIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                </Box>
+              )}
             </Box>
-            
-            <Box display="flex" alignItems="center" gap={1}>
-              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Início: {formatarData(projeto.datainicio)}
-              </Typography>
+
+            {/* Conteúdo do card */}
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                  <Typography variant="h6" component="h3" fontWeight="bold">
+                    <NumbersIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
+                    Território Nº{projeto.numero}
+                  </Typography>
+                  <Chip 
+                    label={getStatusText(projeto.concluido)}
+                    color={getStatusColor(projeto.concluido)}
+                    size="small"
+                  />
+                </Box>
+                
+                {/* Descrição (opcional) */}
+                {projeto.descricao ? (
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mb: 2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {projeto.descricao}
+                  </Typography>
+                ) : (
+                  <Typography 
+                    variant="body2" 
+                    color="text.disabled" 
+                    sx={{ mb: 2, fontStyle: 'italic' }}
+                  >
+                    Sem descrição
+                  </Typography>
+                )}
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {projeto.responsavel}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Início: {formatarData(projeto.datainicio)}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Typography 
+                      variant="body2" 
+                      color={projeto.datafim ? 'text.secondary' : 'text.disabled'}
+                    >
+                      Fim: {formatarData(projeto.datafim)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+
+              {/* Ações do card */}
+              <CardActions sx={{ p: { xs: 1, sm: 2 }, pt: { xs: 0, sm: 0 }, gap: 1, justifyContent: 'flex-end' }}>
+                <Button 
+                  startIcon={<EditIcon />} 
+                  size="small" 
+                  color="primary"
+                  onClick={() => abrirEdicao(projeto)}
+                  title="Editar território"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
+                >
+                  <Typography variant="body2" color="primary">Abrir</Typography>
+                </Button>
+
+                <IconButton 
+                  size="small" 
+                  color="primary"
+                  onClick={() => abrirEdicao(projeto)}
+                  title="Editar território"
+                  sx={{ display: { xs: 'flex', sm: 'none' } }}
+                >
+                  <EditIcon />
+                </IconButton>
+                
+                <Divider orientation="vertical" flexItem />
+
+                <Button 
+                  startIcon={<CheckCircleIcon />} 
+                  size="small" 
+                  color="success"
+                  onClick={() => setProjetoConcluindo(projeto)}
+                  disabled={projeto.concluido}
+                  title="Concluir território"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
+                >
+                  <Typography variant="body2" color="success.main">Concluir</Typography>
+                </Button>
+                
+                <IconButton 
+                  size="small" 
+                  color="success"
+                  onClick={() => setProjetoConcluindo(projeto)}
+                  disabled={projeto.concluido}
+                  title="Concluir território"
+                  sx={{ display: { xs: 'flex', sm: 'none' } }}
+                >
+                  <CheckCircleIcon />
+                </IconButton>
+
+                <Divider orientation="vertical" flexItem />
+
+                <Button 
+                  startIcon={<DeleteIcon />} 
+                  size="small" 
+                  color="error"
+                  onClick={() => setProjetoExcluindo(projeto)}
+                  title="Excluir território"
+                  sx={{ display: { xs: 'none', sm: 'flex' } }}
+                >
+                  <Typography variant="body2" color="error.main">Excluir</Typography>
+                </Button>
+                
+                <IconButton 
+                  size="small" 
+                  color="error"
+                  onClick={() => setProjetoExcluindo(projeto)}
+                  title="Excluir território"
+                  sx={{ display: { xs: 'flex', sm: 'none' } }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </CardActions>
             </Box>
-            
-            <Box display="flex" alignItems="center" gap={1}>
-              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography 
-                variant="body2" 
-                color={projeto.datafim ? 'text.secondary' : 'text.disabled'}
-              >
-                Fim: {formatarData(projeto.datafim)}
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-
-        {/* Ações do card */}
-        <CardActions sx={{ p: { xs: 1, sm: 2 }, pt: { xs: 0, sm: 0 }, gap: 1, justifyContent: 'flex-end' }}>
-          <Button 
-            startIcon={<EditIcon />} 
-            size="small" 
-            color="primary"
-            onClick={() => abrirEdicao(projeto)}
-            title="Editar território"
-            sx={{ display: { xs: 'none', sm: 'flex' } }} // Oculta o texto em mobile
-          >
-            <Typography variant="body2" color="primary">Abrir</Typography>
-          </Button>
-
-          <IconButton 
-            size="small" 
-            color="primary"
-            onClick={() => abrirEdicao(projeto)}
-            title="Editar território"
-            sx={{ display: { xs: 'flex', sm: 'none' } }} // Mostra o ícone em mobile
-          >
-            <EditIcon />
-          </IconButton>
-          
-          <Divider orientation="vertical" flexItem />
-
-          <Button 
-            startIcon={<CheckCircleIcon />} 
-            size="small" 
-            color="success"
-            onClick={() => setProjetoConcluindo(projeto)}
-            disabled={projeto.concluido}
-            title="Concluir território"
-            sx={{ display: { xs: 'none', sm: 'flex' } }}
-          >
-            <Typography variant="body2" color="success.main">Concluir</Typography>
-          </Button>
-          
-          <IconButton 
-            size="small" 
-            color="success"
-            onClick={() => setProjetoConcluindo(projeto)}
-            disabled={projeto.concluido}
-            title="Concluir território"
-            sx={{ display: { xs: 'flex', sm: 'none' } }}
-          >
-            <CheckCircleIcon />
-          </IconButton>
-
-          <Divider orientation="vertical" flexItem />
-
-          <Button 
-            startIcon={<DeleteIcon />} 
-            size="small" 
-            color="error"
-            onClick={() => setProjetoExcluindo(projeto)}
-            title="Excluir território"
-            sx={{ display: { xs: 'none', sm: 'flex' } }}
-          >
-            <Typography variant="body2" color="error.main">Excluir</Typography>
-          </Button>
-          
-          <IconButton 
-            size="small" 
-            color="error"
-            onClick={() => setProjetoExcluindo(projeto)}
-            title="Excluir território"
-            sx={{ display: { xs: 'flex', sm: 'none' } }}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </CardActions>
+          </Card>
+        ))}
       </Box>
-    </Card>
-  ))}
-</Box>
 
       {projetos.length === 0 && !loading && (
         <Paper elevation={0} sx={{ p: 4, textAlign: 'center' }}>
@@ -447,10 +477,35 @@ export default function TerritorioLista({ projetos, loading = false, error, onPr
             Nenhum território cadastrado
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Use o formulário acima para cadastrar seu primeiro território.
+            Clique em "Cadastrar Território" para adicionar o primeiro território.
           </Typography>
         </Paper>
       )}
+
+      {/* Modal para cadastrar novo território */}
+      <Dialog 
+        open={dialogCadastroAberto} 
+        onClose={fecharCadastro} 
+        maxWidth="md" 
+        fullWidth
+        
+      >
+        <DialogTitle> 
+          <Box display="flex" alignItems="center" gap={1}>
+            <AddIcon />
+            Cadastrar Novo Território
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {isClient && <Territorios onProjetoCadastrado={handleTerritorioCadastrado} />}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={fecharCadastro} color="primary">
+            <CancelIcon sx={{ mr: 1 }} />
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal para editar projeto */}
       <Dialog open={!!projetoEditando} onClose={() => setProjetoEditando(null)} maxWidth="sm" fullWidth>

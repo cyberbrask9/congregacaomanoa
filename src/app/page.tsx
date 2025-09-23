@@ -10,49 +10,27 @@ import { Projeto } from '@/types/projeto';
 import Territorios from './components/Territorios';
 import TerritorioLista from './components/TerritorioLista';
 
-export default function ProjetosPage() {
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+export default function Home() {
+  const [, setObjetos] = useState<Objeto[]>([]);
 
-  const carregarProjetos = async () => {
-    try {
-      setError('');
-      const projetosData = await projetoService.listarProjetos();
-      setProjetos(projetosData);
-    } catch (error: any) {
-      setError(error.message || 'Erro ao carregar projetos');
-    } finally {
-      setLoading(false);
-    }
+  const handleObjetoCriado = (novoObjeto: Objeto) => {
+    setObjetos(prev => [...prev, novoObjeto]);
   };
 
-  useEffect(() => {
-    carregarProjetos();
-  }, []);
-
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography 
-        variant="h3" 
-        component="h1" 
-        gutterBottom 
-        fontWeight="bold"
-        color="primary"
-      >
-        Gerenciamento de Territórios
-      </Typography>
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <MenuGaveta />
+        </div>
+      </header>
       
-      <Box sx={{ mb: 4 }}>
-        <Territorios onProjetoCadastrado={carregarProjetos} />
-      </Box>
-
-      <TerritorioLista 
-        projetos={projetos} 
-        loading={loading}
-        error={error}
-        onProjetoAtualizado={carregarProjetos}
-      />
-    </Container>
+      <main className="max-w-7xl mx-auto py-8 px-4">
+       {/*  <FormularioObjeto onObjetoCriado={handleObjetoCriado} /> */}
+         <div className="mt-12"> 
+          {/* <ListaObjetos /> */}
+       </div>
+      </main>
+    </div>
   );
 }

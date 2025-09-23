@@ -21,6 +21,8 @@ import { PersonAdd, Article } from '@mui/icons-material';
 import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
 import LeitoresSentinelaFixed from './LeitoresSentinelaFixed';
+import TerritorioLista from './TerritorioLista';
+import Territorios from './Territorios';
 
 const drawerWidth = 240;
 
@@ -101,8 +103,8 @@ export default function MenuGaveta() {
         return <div>Opção 1 - Componente em desenvolvimento</div>;
       case 'opcao2':
         return <div>Opção 2 - Componente em desenvolvimento</div>;
-      case 'teste1':
-        return <div>Teste 1 - Componente em desenvolvimento</div>;
+      case 'territorio':
+        return <TerritorioLista />;
       case 'teste2':
         return <div>Teste 2 - Componente em desenvolvimento</div>;
       default:
@@ -193,15 +195,15 @@ export default function MenuGaveta() {
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
-            <ListItemButton onClick={() => handleMenuClick('teste1')}>
+            <ListItemButton onClick={() => handleMenuClick('territorio')}>
               <ListItemIcon>
                 <Article />
               </ListItemIcon>
-              <ListItemText primary="Teste1" />
+              <ListItemText primary="Territorios" />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
-            <ListItemButton onClick={() => handleMenuClick('teste2')}>
+            <ListItemButton onClick={() => handleMenuClick('territorio')}>
               <ListItemIcon>
                 <Article />
               </ListItemIcon>
