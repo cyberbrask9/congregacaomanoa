@@ -65,6 +65,12 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
   const [dialogCadastroAberto, setDialogCadastroAberto] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  // Debug: log dos projetos recebidos
+  useEffect(() => {
+    console.log('Projetos recebidos no TerritorioLista:', projetos);
+    console.log('Número de projetos:', projetos.length);
+  }, [projetos]);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -124,8 +130,17 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
 
   // Função chamada quando um território é cadastrado com sucesso
   const handleTerritorioCadastrado = () => {
+    console.log('Território cadastrado - fechando dialog e atualizando lista');
     fecharCadastro();
-    onProjetoAtualizado(); // Recarregar a lista
+    
+    // Chama a função de atualização imediatamente
+    onProjetoAtualizado();
+    
+    // E novamente após um pequeno delay para garantir que o servidor processou
+    setTimeout(() => {
+      console.log('Atualizando lista novamente após delay');
+      onProjetoAtualizado();
+    }, 1000);
   };
 
   // Função para editar projeto
@@ -140,11 +155,12 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
 
     setSalvando(true);
     try {
+      console.log('Salvando edição do projeto:', projetoEditando.id);
       await projetoService.atualizarProjeto(projetoEditando.id!, {
         responsavel: editandoResponsavel,
         datainicio: editandoDataInicio,
-        datafim: null,
-        concluido: false
+        datafim: projetoEditando.datafim || undefined,
+        concluido: projetoEditando.concluido
       });
       
       setProjetoEditando(null);
@@ -163,6 +179,7 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
 
     setSalvando(true);
     try {
+      console.log('Excluindo projeto:', projetoExcluindo.id);
       await projetoService.deletarProjeto(projetoExcluindo.id!);
       setProjetoExcluindo(null);
       onProjetoAtualizado();
@@ -180,9 +197,12 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
 
     setSalvando(true);
     try {
+      console.log('Concluindo projeto:', projetoConcluindo.id);
       await projetoService.atualizarProjeto(projetoConcluindo.id!, {
         datafim: dataConclusao,
-        concluido: true
+        concluido: true,
+        responsavel: projetoConcluindo.responsavel,
+        datainicio: projetoConcluindo.datainicio
       });
       
       setProjetoConcluindo(null);
@@ -200,6 +220,9 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
         <CircularProgress />
+        <Typography variant="body2" sx={{ ml: 2 }}>
+          Carregando territórios...
+        </Typography>
       </Box>
     );
   }
@@ -268,8 +291,8 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
               },
               transition: 'all 0.3s ease',
               '&:hover': {
-                elevation: 0.5,
-                transform: 'translateY(-1px)'
+                boxShadow: 3,
+                transform: 'translateY(-2px)'
               }
             }}
           >
@@ -488,7 +511,6 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
         onClose={fecharCadastro} 
         maxWidth="md" 
         fullWidth
-        
       >
         <DialogTitle> 
           <Box display="flex" alignItems="center" gap={1}>
@@ -537,9 +559,6 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
                 startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />,
               }}
             />
-            <Typography variant="body2" color="text.secondary">
-              ⓘ A data de fim será removida e o status será alterado para "Em andamento"
-            </Typography>
           </Box>
         </DialogContent>
         <DialogActions>

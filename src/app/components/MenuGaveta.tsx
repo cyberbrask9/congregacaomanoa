@@ -22,7 +22,8 @@ import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
 import LeitoresSentinelaFixed from './LeitoresSentinelaFixed';
 import TerritorioLista from './TerritorioLista';
-import Territorios from './Territorios';
+import PageTerritorioList from './PageTerritorioList';
+
 
 const drawerWidth = 240;
 
@@ -104,7 +105,7 @@ export default function MenuGaveta() {
       case 'opcao2':
         return <div>Opção 2 - Componente em desenvolvimento</div>;
       case 'territorio':
-        return <TerritorioLista />;
+        return <PageTerritorioList />;
       case 'teste2':
         return <div>Teste 2 - Componente em desenvolvimento</div>;
       default:
