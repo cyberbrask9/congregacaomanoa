@@ -13,13 +13,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, startOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR'; // Correção aqui
+import { ptBR } from 'date-fns/locale/pt-BR';
 
 interface LeitorData {
   id: number;
   nome: string;
   data: string;
-  // Outros campos conforme sua estrutura de dados
 }
 
 export const LeitorsSentinela: React.FC = () => {
@@ -56,6 +55,12 @@ export const LeitorsSentinela: React.FC = () => {
     }
   };
 
+  // Função para filtrar props inválidas do TextField
+  const filterTextFieldProps = (params: any) => {
+    const { sectionListRef, ...validParams } = params;
+    return validParams;
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -82,24 +87,21 @@ export const LeitorsSentinela: React.FC = () => {
             </Alert>
           )}
 
-          {/* Input de mês/ano */}
+          {/* Input de mês/ano - CORRIGIDO */}
           <Box sx={{ mb: 3 }}>
-  <DatePicker
-    views={['month', 'year']}
-    label="Mês e Ano"
-    value={selectedDate}
-    onChange={(newValue) => setSelectedDate(newValue)}
-    slots={{
-      textField: (params) => (
-        <TextField 
-          {...params} 
-          fullWidth 
-          helperText="Selecione o mês e ano para a consulta"
-        />
-      )
-    }}
-  />
-</Box>
+            <DatePicker
+              views={['month', 'year']}
+              label="Mês e Ano"
+              value={selectedDate}
+              onChange={(newValue) => setSelectedDate(newValue)}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  helperText: "Selecione o mês e ano para a consulta"
+                }
+              }}
+            />
+          </Box>
 
           {/* Botão Submit */}
           <Button
@@ -120,7 +122,7 @@ export const LeitorsSentinela: React.FC = () => {
             )}
           </Button>
 
-          {/* Lista de leitores (exemplo de exibição) */}
+          {/* Lista de leitores */}
           {leitors.length > 0 && (
             <Box sx={{ mt: 4 }}>
               <Typography variant="h6" gutterBottom>
