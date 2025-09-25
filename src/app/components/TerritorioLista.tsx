@@ -267,10 +267,10 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
               label="Ordenar por"
               onChange={handleOrdenacaoChange}
             >
-              <MenuItem value="datafim_desc">Data Fim (Mais Recente)</MenuItem>
-              <MenuItem value="datafim_asc">Data Fim (Mais Antiga)</MenuItem>
-              <MenuItem value="numero_desc">Número (Maior)</MenuItem>
-              <MenuItem value="numero_asc">Número (Menor)</MenuItem>
+              <MenuItem value="datafim_desc">Trabalhado Recente</MenuItem>
+              <MenuItem value="datafim_asc">Mais tempo sem trabalhar</MenuItem>
+              <MenuItem value="numero_desc">Decrescente</MenuItem>
+              <MenuItem value="numero_asc">Crescente</MenuItem>
             </Select>
           </FormControl>
         </Box>

@@ -77,15 +77,28 @@ export const projetoService = {
     return response.json();
   },
 
-  async deletarProjeto(id: number): Promise<void> {
-    const response = await fetch(`${API_URL}/projetos/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erro ao deletar projeto');
+ async deletarProjeto(id: number): Promise<void> {
+  const response = await fetch(`${API_URL}/projetos/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Erro ao deletar projeto';
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      // Se a resposta for JSON, leia-a como JSON
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } else {
+      // Se não for JSON (provavelmente HTML), leia como texto
+      const errorText = await response.text();
+      errorMessage = `Erro ${response.status}: ${errorText || errorMessage}`;
     }
+
+    throw new Error(errorMessage);
   }
+}
 };
 // fim gestão território
 
