@@ -1,18 +1,8 @@
 'use client';
 import MenuGaveta from './components/MenuGaveta';
-import { Objeto } from '@/types';
-//
-
-import { useState, useEffect } from 'react';
-
 
 export default function Home() {
-  const [, setObjetos] = useState<Objeto[]>([]);
 
-  const handleObjetoCriado = (novoObjeto: Objeto) => {
-    setObjetos(prev => [...prev, novoObjeto]);
-  };
-  
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -24,10 +14,8 @@ export default function Home() {
       </header>
       
       <main className="max-w-7xl mx-auto py-8 px-4">
-       {/*  <FormularioObjeto onObjetoCriado={handleObjetoCriado} /> */}
-         <div className="mt-12"> 
-          {/* <ListaObjetos /> */}
-       </div>
+     
+    
       </main>
     </div>
   );

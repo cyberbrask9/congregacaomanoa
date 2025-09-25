@@ -7,7 +7,6 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
   Alert,
   CircularProgress,
   InputAdornment,
@@ -73,7 +72,6 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
     setSuccess('');
 
     try {
-      // Validar campos obrigatórios
       if (!formData.numero || !formData.datainicio || !formData.responsavel) {
         setError('Número, data de início e responsável são obrigatórios');
         setLoading(false);
@@ -82,26 +80,23 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
 
       let imgUrl = '';
       
-      // Upload da imagem se existir
       if (formData.img) {
         const uploadResult = await projetoService.uploadImagem(formData.img);
         imgUrl = uploadResult.url;
       }
 
-      // Cadastrar projeto
       const projetoData: Omit<Projeto, 'id'> = {
         numero: Number(formData.numero),
-        descricao: formData.descricao || undefined, // Opcional
+        descricao: formData.descricao || undefined,
         datainicio: formData.datainicio,
-        datafim: formData.datafim || undefined, // Opcional
+        datafim: formData.datafim || undefined,
         responsavel: formData.responsavel,
         concluido: formData.concluido,
-        img: imgUrl || undefined, // Opcional
+        img: imgUrl || undefined,
       };
 
       await projetoService.cadastrarProjeto(projetoData);
       
-      // Limpar formulário
       setFormData({
         numero: '',
         descricao: '',
@@ -115,10 +110,13 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
       setSuccess('Projeto cadastrado com sucesso!');
       onProjetoCadastrado();
       
-      // Limpar mensagem de sucesso após 3 segundos
       setTimeout(() => setSuccess(''), 3000);
-    } catch (error: any) {
-      setError(error.message || 'Erro ao cadastrar projeto');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || 'Erro ao cadastrar projeto');
+      } else {
+        setError('Erro ao cadastrar projeto');
+      }
     } finally {
       setLoading(false);
     }
@@ -162,154 +160,149 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
       )}
 
       <Box component="form" onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Número do Projeto *"
-              name="numero"
-              type="number"
-              value={formData.numero}
-              onChange={handleChange}
-              required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <NumbersIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
+        {/* SUBSTITUIÇÃO DO GRID - Use CSS Grid do MUI System */}
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+          gap: 3,
+          mb: 3 
+        }}>
+          <TextField
+            fullWidth
+            label="Número do Projeto *"
+            name="numero"
+            type="number"
+            value={formData.numero}
+            onChange={handleChange}
+            required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <NumbersIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Responsável *"
-              name="responsavel"
-              value={formData.responsavel}
-              onChange={handleChange}
-              required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PersonIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
+          <TextField
+            fullWidth
+            label="Responsável *"
+            name="responsavel"
+            value={formData.responsavel}
+            onChange={handleChange}
+            required
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Data de Início *"
-              name="datainicio"
-              type="date"
-              value={formData.datainicio}
-              onChange={handleChange}
-              required
-              InputLabelProps={{ shrink: true }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
+          <TextField
+            fullWidth
+            label="Data de Início *"
+            name="datainicio"
+            type="date"
+            value={formData.datainicio}
+            onChange={handleChange}
+            required
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CalendarIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Data de Término (Opcional)"
-              name="datafim"
-              type="date"
-              value={formData.datafim}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              helperText="Deixe em branco se não houver data de término definida"
-            />
-          </Grid>
+          <TextField
+            fullWidth
+            label="Data de Término (Opcional)"
+            name="datafim"
+            type="date"
+            value={formData.datafim}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CalendarIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+            helperText="Deixe em branco se não houver data de término definida"
+          />
+        </Box>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Descrição do Projeto (Opcional)"
-              name="descricao"
-              value={formData.descricao}
-              onChange={handleChange}
-              multiline
-              rows={3}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <DescriptionIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              helperText="Descrição detalhada do projeto (opcional)"
-            />
-          </Grid>
+        {/* Campos que ocupam linha inteira */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <TextField
+            fullWidth
+            label="Descrição do Projeto (Opcional)"
+            name="descricao"
+            value={formData.descricao}
+            onChange={handleChange}
+            multiline
+            rows={3}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <DescriptionIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+            helperText="Descrição detalhada do projeto (opcional)"
+          />
 
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  name="concluido"
-                  checked={formData.concluido}
-                  onChange={handleChange}
-                  color="primary"
-                />
-              }
-              label="Projeto Concluído"
-            />
-          </Grid>
+          <FormControlLabel
+            control={
+              <Switch
+                name="concluido"
+                checked={formData.concluido}
+                onChange={handleChange}
+                color="primary"
+              />
+            }
+            label="Projeto Concluído"
+          />
 
-          <Grid item xs={12}>
-            <Box sx={{ mb: 2 }}>
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<ImageIcon />}
-              >
-                Upload de Imagem (Opcional)
-                <input
-                  type="file"
-                  hidden
-                  accept=".png,.jpeg,.jpg"
-                  onChange={handleFileChange}
-                />
-              </Button>
-              
-              {formData.img && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                  <Chip 
-                    label={formData.img.name}
-                    onDelete={removeImagem}
-                    deleteIcon={<DeleteIcon />}
-                    variant="outlined"
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    ({Math.round(formData.img.size / 1024)} KB)
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<ImageIcon />}
+            >
+              Upload de Imagem (Opcional)
+              <input
+                type="file"
+                hidden
+                accept=".png,.jpeg,.jpg"
+                onChange={handleFileChange}
+              />
+            </Button>
             
-            <Typography variant="caption" display="block" color="text.secondary">
+            {formData.img && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                <Chip 
+                  label={formData.img.name}
+                  onDelete={removeImagem}
+                  deleteIcon={<DeleteIcon />}
+                  variant="outlined"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  ({Math.round(formData.img.size / 1024)} KB)
+                </Typography>
+              </Box>
+            )}
+            
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
               Formatos suportados: PNG, JPEG, JPG (opcional)
             </Typography>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
           <Button

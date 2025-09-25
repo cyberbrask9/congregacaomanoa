@@ -6,7 +6,6 @@ import {
   Paper,
   Typography,
   Card,
-  CardMedia,
   CardContent,
   CardActions,
   Chip,
@@ -500,7 +499,7 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
             Nenhum território cadastrado
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Clique em "Cadastrar Território" para adicionar o primeiro território.
+            Clique em Cadastrar Território para adicionar o primeiro território.
           </Typography>
         </Paper>
       )}
@@ -627,7 +626,7 @@ export default function TerritorioLista({ projetos = [], loading = false, error,
               }}
             />
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              ⓘ Ao concluir, o território será marcado como "Finalizado"
+              Ao concluir, o território será marcado como Finalizado
             </Typography>
           </Box>
         </DialogContent>

@@ -22,9 +22,10 @@
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
     "@mui/styled-engine-sc": "^7.3.2",
+    "@mui/system": "^7.3.2",
     "@mui/x-date-pickers": "^8.11.3",
     "axios": "^1.12.2",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "next": "15.5.3",
@@ -34,6 +35,7 @@
     "styled-components": "^6.1.19"
   },
   "devDependencies": {
+    "@babel/preset-typescript": "^7.27.1",
     "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",

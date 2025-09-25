@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projetoDB } from '@/lib/database';
+import { Projeto } from '@/types'; // ✅ Importe a interface
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    const params = await context.params;
     const id = parseInt(params.id);
     
     if (isNaN(id)) {
@@ -18,7 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const projeto = projetoDB.getById(id);
+    const projeto = projetoDB.getById(id) as Projeto | null;
     
     if (!projeto) {
       return NextResponse.json(
@@ -37,8 +36,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    const params = await context.params;
     const id = parseInt(params.id);
     
     if (isNaN(id)) {
@@ -48,7 +51,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const projetoExistente = projetoDB.getById(id);
+    const projetoExistente = projetoDB.getById(id) as Projeto | null;
     if (!projetoExistente) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' }, 
@@ -56,9 +59,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const projetoData = await request.json();
+    const projetoData = await request.json() as Partial<Projeto>;
 
-    // Verificar se número já existe (em outro projeto)
+    // ✅ Agora o TypeScript reconhece todas as propriedades
     if (projetoData.numero && projetoData.numero !== projetoExistente.numero) {
       const projetoComNumero = projetoDB.getByNumero(projetoData.numero);
       if (projetoComNumero) {
@@ -69,7 +72,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    const projetoAtualizado = projetoDB.update(id, projetoData);
+    const projetoAtualizado = projetoDB.update(id, projetoData) as Projeto;
     return NextResponse.json(projetoAtualizado);
   } catch (error) {
     console.error('Erro ao atualizar projeto:', error);
@@ -80,8 +83,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
+    const params = await context.params;
     const id = parseInt(params.id);
     
     if (isNaN(id)) {
@@ -91,7 +98,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const projetoExistente = projetoDB.getById(id);
+    const projetoExistente = projetoDB.getById(id) as Projeto | null;
     if (!projetoExistente) {
       return NextResponse.json(
         { error: 'Projeto não encontrado' }, 

@@ -20,9 +20,8 @@ import ListItemText from '@mui/material/ListItemText';
 import { PersonAdd, Article } from '@mui/icons-material';
 import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
-import LeitoresSentinelaFixed from './LeitoresSentinelaFixed';
-import TerritorioLista from './TerritorioLista';
 import PageTerritorioList from './PageTerritorioList';
+import LeitoresSentinela from './LeitoresSentinela';
 
 
 const drawerWidth = 240;
@@ -99,7 +98,7 @@ export default function MenuGaveta() {
       case 'listaObjetos':
         return <ListaObjetos />;
       case 'leitorASentinela':
-        return <LeitoresSentinelaFixed />;
+        return <LeitoresSentinela />
       case 'opcao1':
         return <div>Opção 1 - Componente em desenvolvimento</div>;
       case 'opcao2':

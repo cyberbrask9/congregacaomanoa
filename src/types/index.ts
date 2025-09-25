@@ -15,13 +15,15 @@ export interface CreateObjetoDto {
 }
 
 export interface Projeto {
-  id?: string;
+   id: number;
   numero: number;
-  descricao: string;
+  descricao?: string; // Opcional
   datainicio: string;
-  datafim: string;
+  datafim?: string;   // Opcional
   responsavel: string;
-  concluido: boolean;
-  img?: string;
+  concluido: boolean; // Deve ser boolean, não number
+  img?: string;       // Opcional
+  created_at?: string;
+  updated_at?: string;
 }
 export type Ordenacao = 'datafim_asc' | 'datafim_desc' | 'numero_asc' | 'numero_desc';

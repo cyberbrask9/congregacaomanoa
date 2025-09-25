@@ -29,7 +29,7 @@ export const projetoService = {
     return response.json();
   },
 
-  async uploadImagem(file: File): Promise<{ url: string }> {
+ async uploadImagem(file: File): Promise<{ url: string }> {
   try {
     const formData = new FormData();
     formData.append('image', file);
@@ -47,7 +47,7 @@ export const projetoService = {
       try {
         const errorData = JSON.parse(errorText);
         errorMessage = errorData.error || errorMessage;
-      } catch (e) {
+      } catch {
         // Se não for JSON, usar o texto original
         errorMessage = errorText || errorMessage;
       }
