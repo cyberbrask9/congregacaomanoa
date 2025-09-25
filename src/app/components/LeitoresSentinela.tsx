@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   Button,
   CircularProgress,
   Container,
@@ -55,12 +54,6 @@ export const LeitorsSentinela: React.FC = () => {
     }
   };
 
-  // Função para filtrar props inválidas do TextField
-  const filterTextFieldProps = (params: any) => {
-    const { sectionListRef, ...validParams } = params;
-    return validParams;
-  };
-
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -87,7 +80,7 @@ export const LeitorsSentinela: React.FC = () => {
             </Alert>
           )}
 
-          {/* Input de mês/ano - CORRIGIDO */}
+          {/* Input de mês/ano - Versão Corrigida */}
           <Box sx={{ mb: 3 }}>
             <DatePicker
               views={['month', 'year']}
