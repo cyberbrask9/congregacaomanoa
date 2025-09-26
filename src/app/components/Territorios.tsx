@@ -107,15 +107,15 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
         img: null,
       });
       
-      setSuccess('Projeto cadastrado com sucesso!');
+      setSuccess('Território cadastrado com sucesso!');
       onProjetoCadastrado();
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError(error.message || 'Erro ao cadastrar projeto');
+        setError(error.message || 'Erro ao cadastrar Território');
       } else {
-        setError('Erro ao cadastrar projeto');
+        setError('Erro ao cadastrar Território');
       }
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
         gap: 1,
         color: 'primary.main'
       }}>
-        <AddIcon /> Cadastrar Novo Projeto
+        <AddIcon /> Cadastrar Novo Territóiro
       </Typography>
 
       {error && (
@@ -169,7 +169,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
         }}>
           <TextField
             fullWidth
-            label="Número do Projeto *"
+            label="Número do Território *"
             name="numero"
             type="number"
             value={formData.numero}
@@ -241,7 +241,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <TextField
             fullWidth
-            label="Descrição do Projeto (Opcional)"
+            label="Descrição do Território (Opcional)"
             name="descricao"
             value={formData.descricao}
             onChange={handleChange}
@@ -254,7 +254,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
                 </InputAdornment>
               ),
             }}
-            helperText="Descrição detalhada do projeto (opcional)"
+            helperText="Descrição do Território (opcional)"
           />
 
           <FormControlLabel
@@ -266,7 +266,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
                 color="primary"
               />
             }
-            label="Projeto Concluído"
+            label="Território Concluído"
           />
 
           <Box sx={{ mb: 2 }}>
@@ -312,7 +312,7 @@ export default function Territorios({ onProjetoCadastrado }: ProjetoFormProps) {
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
           >
-            {loading ? 'Cadastrando...' : 'Cadastrar Projeto'}
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
           </Button>
           
           <Button
