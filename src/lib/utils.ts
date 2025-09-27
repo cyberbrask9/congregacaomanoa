@@ -77,31 +77,71 @@ export const dbUtils = {
   }
 };
 
-/* import { Objeto } from '@/types';
+// Adicione esta interface no início do arquivo (após as importações)
+export interface LeitorListSentinela {
+  id: number;
+  idlistsentina: string;
+  nomemes: string;
+  dataleitorsentinela: string[]; // Array de datas
+  leitoriosparte: Objeto[]; // Array de objetos leitores
+  dataCriacao: Date;
+}
 
-// Simulação de "banco de dados" em memória
-let objetos: Objeto[] = [];
-
-export const db = {
-  // Criar novo objeto
-  create: async (objeto: Omit<Objeto, 'id' | 'dataCriacao'>): Promise<Objeto> => {
-    const novoObjeto: Objeto = {
-      ...objeto,
-      id: Math.floor(Math.random() * 1000000),
-      dataCriacao: new Date()
-    };
+// Operações para leitorlistsentinela
+export const leitorListSentinelaUtils = {
+  // Criar novo leitorlistsentinela
+  create: async (leitorData: Omit<LeitorListSentinela, 'id' | 'dataCriacao'>): Promise<LeitorListSentinela> => {
+    const stmt = db.prepare(`
+      INSERT INTO leitorlistsentinela (idlistsentina, nomemes, dataleitorsentinela, leitoriosparte)
+      VALUES (?, ?, ?, ?)
+    `);
     
-    objetos.push(novoObjeto);
-    return novoObjeto;
+    const result = stmt.run(
+      leitorData.idlistsentina,
+      leitorData.nomemes,
+      JSON.stringify(leitorData.dataleitorsentinela), // Salva array como JSON
+      JSON.stringify(leitorData.leitoriosparte) // Salva array de objetos como JSON
+    );
+
+    const newObj = db.prepare('SELECT * FROM leitorlistsentinela WHERE id = ?').get(result.lastInsertRowid);
+    
+    // Converter strings JSON de volta para arrays
+    return {
+      ...(newObj as any),
+      dataleitorsentinela: JSON.parse((newObj as any).dataleitorsentinela),
+      leitoriosparte: JSON.parse((newObj as any).leitoriosparte)
+    } as LeitorListSentinela;
   },
 
-  // Listar todos os objetos
-  findAll: async (): Promise<Objeto[]> => {
-    return objetos;
+  // Listar todos os leitorlistsentinela
+  findAll: async (): Promise<LeitorListSentinela[]> => {
+    const stmt = db.prepare('SELECT * FROM leitorlistsentinela ORDER BY dataCriacao DESC');
+    const leitores = stmt.all() as any[];
+    
+    return leitores.map(leitor => ({
+      ...leitor,
+      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela),
+      leitoriosparte: JSON.parse(leitor.leitoriosparte)
+    })) as LeitorListSentinela[];
   },
 
-  // Encontrar objeto por ID
-  findById: async (id: number): Promise<Objeto | undefined> => {
-    return objetos.find(o => o.id === id);
+  // Encontrar por idlistsentina
+  findByIdLista: async (idlistsentina: string): Promise<LeitorListSentinela | undefined> => {
+    const stmt = db.prepare('SELECT * FROM leitorlistsentinela WHERE idlistsentina = ?');
+    const leitor = stmt.get(idlistsentina) as any;
+    
+    if (!leitor) return undefined;
+    
+    return {
+      ...leitor,
+      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela),
+      leitoriosparte: JSON.parse(leitor.leitoriosparte)
+    } as LeitorListSentinela;
+  },
+
+  // Deletar leitorlistsentinela
+  delete: async (id: number): Promise<void> => {
+    const stmt = db.prepare('DELETE FROM leitorlistsentinela WHERE id = ?');
+    stmt.run(id);
   }
-}; */
+};

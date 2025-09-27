@@ -170,3 +170,29 @@ export const leitorService = {
     }
   }
 };
+
+//leitor a sentinela
+export const leitorSentinelaService = {
+  // Criar nova lista de leitores
+  criarListaLeitores: async (mes: number, ano: number) => {
+    try {
+      const response = await api.post('/leitor-sentinela', { mes, ano });
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Listar todas as listas
+  listarListasLeitores: async () => {
+    try {
+      const response = await api.get('/leitor-sentinela');
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  }
+};
+// fim leitor a sentinela

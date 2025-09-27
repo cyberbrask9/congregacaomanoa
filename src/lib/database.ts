@@ -20,6 +20,7 @@ export interface Projeto {
   data_criacao: string;
 }
 
+
 // Interface para projetos que saem do banco
 export interface ProjetoDB {
     id: number;
@@ -55,6 +56,17 @@ db.exec(`
     atribuição TEXT NOT NULL,
     privilégio TEXT NOT NULL,
     foto TEXT DEFAULT '',
+    dataCriacao DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+/////criar tabelas leitos a sentinela
+db.exec(`
+  CREATE TABLE IF NOT EXISTS leitorlistsentinela (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    idlistsentina TEXT UNIQUE NOT NULL,
+    nomemes TEXT NOT NULL,
+    dataleitorsentinela TEXT NOT NULL, -- JSON array de datas
+    leitoriosparte TEXT NOT NULL, -- JSON array de objetos
     dataCriacao DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
