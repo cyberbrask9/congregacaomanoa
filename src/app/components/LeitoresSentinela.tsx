@@ -35,7 +35,9 @@ import {
   Person
 } from '@mui/icons-material';
 import { Objeto } from '@/types';
-import dynamic from 'next/dynamic';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 // Interface para leitorlistsentinela
 interface LeitorListSentinela {
@@ -129,73 +131,45 @@ const LeitoresSentinela: React.FC = () => {
   };
 
   // Função para exportar PDF - DEFINIDA CORRETAMENTE
-  const exportarParaPDF = async (lista: LeitorListSentinela) => {
-    try {
-      // Dynamic import para evitar problemas de SSR
-      const { default: jsPDF } = await import('jspdf');
-      
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 15;
-      let yPosition = margin;
-      
-      // Título
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Lista de Leitores A Sentinela', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 10;
-      
-      // Mês e ano
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(lista.nomemes, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 10;
-      
-      // Data de geração
-      doc.setFontSize(10);
-      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 15;
-      
-      // Cabeçalho da tabela
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Data', margin, yPosition);
-      doc.text('Leitor', margin + 50, yPosition);
-      yPosition += 8;
-      
-      // Linha separadora
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 10;
-      
-      // Dados da tabela
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      
-      lista.dataleitorsentinela.forEach((data, index) => {
-        const leitor = lista.leitoriosparte[index];
-        
-        // Quebra de página se necessário
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = margin;
-        }
-        
-        doc.text(formatarData(data), margin, yPosition);
-        doc.text(leitor ? leitor.nome : 'Não atribuído', margin + 50, yPosition);
-        yPosition += 7;
-      });
-      
-      // Salvar PDF
-      doc.save(`Leitores_Sentinela_${lista.nomemes.replace(/ /g, '_')}.pdf`);
-      
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      setSnackbarMessage('Erro ao gerar PDF. Tente novamente.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
+const exportarParaPDF = (lista: LeitorListSentinela) => {
+  try {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(16);
+    doc.text('Leitores da Sentinela', 105, 15, { align: 'center' });
+    doc.text(lista.nomemes, 105, 25, { align: 'center' });
+    
+    // Dados da tabela
+    const body = lista.dataleitorsentinela.map((data, index) => [
+      formatarData(data),
+      lista.leitoriosparte[index]?.nome || 'Não atribuído'
+    ]);
 
+    // FORMA CORRETA - autoTable é uma função separada
+    autoTable(doc, {
+      startY: 35,
+      head: [['Data', 'Leitor']],
+      body: body,
+      styles: { fontSize: 14 },
+      headStyles: { 
+        fillColor: [61, 142, 64],
+        textColor: 255 
+      },
+      alternateRowStyles: { 
+        fillColor: [240, 240, 240] 
+      }
+    });
+
+    doc.save(`leitores_${lista.nomemes.replace(/ /g, '_')}.pdf`);
+    
+  } catch (error) {
+    console.error('Erro PDF:', error);
+    setSnackbarMessage('Erro ao gerar PDF: ' + error.message);
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
   
   // Funções para edição
   const abrirEdicao = (lista: LeitorListSentinela) => {
@@ -358,7 +332,7 @@ const LeitoresSentinela: React.FC = () => {
     <Box sx={{ maxWidth: 1200, margin: '0 auto', p: 3 }}>
       {/* Cabeçalho */}
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary', mb: 4 }}>
-        Gerenciar Leitores da Sentinela
+        Leitores da Sentinela
       </Typography>
 
       {/* Formulário para criar nova lista */}
@@ -548,7 +522,7 @@ const LeitoresSentinela: React.FC = () => {
         </CardContent>
       </Card>
 
-     // Dialog de Edição - ATUALIZADO com selects individuais
+     
         <Dialog open={editarOpen} onClose={fecharEdicao} maxWidth="lg" fullWidth>
           <DialogTitle>
             Editar Lista de Leitores - {listaEditando?.nomemes}
