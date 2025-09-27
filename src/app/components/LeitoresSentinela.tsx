@@ -1,6 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Snackbar,
+  MenuItem,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CalendarToday,
+  Person
+} from '@mui/icons-material';
 import { Objeto } from '@/types';
 
 interface LeitorListSentinela {
@@ -19,6 +51,20 @@ const LeitoresSentinela: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [listasExistentes, setListasExistentes] = useState<LeitorListSentinela[]>([]);
+  
+  // Estados para edição
+  const [editarOpen, setEditarOpen] = useState<boolean>(false);
+  const [listaEditando, setListaEditando] = useState<LeitorListSentinela | null>(null);
+  const [leitoresEditados, setLeitoresEditados] = useState<Objeto[]>([]);
+  
+  // Estados para exclusão
+  const [excluirOpen, setExcluirOpen] = useState<boolean>(false);
+  const [listaExcluindo, setListaExcluindo] = useState<LeitorListSentinela | null>(null);
+  
+  // Snackbar para feedback
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // Carregar listas existentes ao montar o componente
   useEffect(() => {
@@ -58,148 +104,482 @@ const LeitoresSentinela: React.FC = () => {
         throw new Error(data.error || 'Erro ao processar leitores');
       }
 
-      setSuccess('Lista de leitores criada com sucesso!');
+      setSnackbarMessage('Lista de leitores criada com sucesso!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
       // Recarregar listas existentes
       await carregarListasExistentes();
       
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatarData = (dataString: string) => {
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR');
+  // Funções para edição
+  const abrirEdicao = (lista: LeitorListSentinela) => {
+  setListaEditando(lista);
+  
+  // Inicializar o array de leitores editados mantendo a ordem das datas
+  const leitoresIniciais = lista.dataleitorsentinela.map((data, index) => 
+    lista.leitoriosparte[index] || null
+  );
+  
+  setLeitoresEditados(leitoresIniciais);
+  setEditarOpen(true);
+};
+
+  const fecharEdicao = () => {
+    setEditarOpen(false);
+    setListaEditando(null);
+    setLeitoresEditados([]);
+  };
+
+// função para salvar a edição
+ const salvarEdicao = async () => {
+  if (!listaEditando) return;
+
+  try {
+    // Filtrar apenas leitores que foram atribuídos (remover null/undefined)
+    const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
+
+    // Verificar se há nomes repetidos
+    const nomesLeitores = leitoresAtribuidos.map(leitor => leitor.nome);
+    const nomesUnicos = new Set(nomesLeitores);
+    
+    if (nomesLeitores.length !== nomesUnicos.size) {
+      // Encontrar nomes repetidos
+      const nomesRepetidos = nomesLeitores.filter((nome, index) => 
+        nomesLeitores.indexOf(nome) !== index
+      );
+      const nomesRepetidosUnicos = [...new Set(nomesRepetidos)];
+      
+      // Mostrar diálogo de confirmação para nomes repetidos
+      const confirmar = window.confirm(
+        `Os seguintes nomes se repetem na lista: ${nomesRepetidosUnicos.join(', ')}\n\nDeseja salvar assim mesmo?`
+      );
+      
+      if (!confirmar) {
+        return; // Abortar se o usuário cancelar
+      }
+    }
+
+    // Atualizar a lista no banco de dados
+    const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        leitoriosparte: leitoresAtribuidos
+      }),
+    });
+
+    if (!updateResponse.ok) {
+      throw new Error('Erro ao atualizar lista');
+    }
+
+    setSnackbarMessage('Lista atualizada com sucesso!');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+    fecharEdicao();
+    await carregarListasExistentes();
+    
+  } catch (error) {
+    setSnackbarMessage('Erro ao atualizar lista');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
+
+  // Funções para exclusão
+  const abrirExclusao = (lista: LeitorListSentinela) => {
+    setListaExcluindo(lista);
+    setExcluirOpen(true);
+  };
+
+  const fecharExclusao = () => {
+    setExcluirOpen(false);
+    setListaExcluindo(null);
+  };
+
+  const confirmarExclusao = async () => {
+    if (!listaExcluindo) return;
+
+    try {
+      const response = await fetch(`/api/leitor-sentinela/${listaExcluindo.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao excluir lista');
+      }
+
+      setSnackbarMessage('Lista excluída com sucesso!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+      fecharExclusao();
+      await carregarListasExistentes();
+      
+    } catch (error) {
+      setSnackbarMessage('Erro ao excluir lista');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+ const formatarData = (dataString: string) => {
+  // Se a data já está no formato YYYY-MM-DD, converter corretamente
+  const [ano, mes, dia] = dataString.split('-').map(Number);
+  const data = new Date(ano, mes - 1, dia);
+  return data.toLocaleDateString('pt-BR');
+};
+
+  // Buscar todos os leitores disponíveis para edição
+  const [todosLeitores, setTodosLeitores] = useState<Objeto[]>([]);
+  
+  useEffect(() => {
+    const buscarLeitores = async () => {
+      try {
+        const response = await fetch('/api/objetos');
+        if (response.ok) {
+          const objetos = await response.json();
+          const leitores = objetos.filter((objeto: Objeto) => 
+            objeto.privilégio.includes('Leitor A Sentinela')
+          );
+          setTodosLeitores(leitores);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar leitores:', error);
+      }
+    };
+    
+    if (editarOpen) {
+      buscarLeitores();
+    }
+  }, [editarOpen]);
+
+  const toggleLeitor = (leitor: Objeto) => {
+    setLeitoresEditados(prev => {
+      const existe = prev.find(l => l.id === leitor.id);
+      if (existe) {
+        return prev.filter(l => l.id !== leitor.id);
+      } else {
+        return [...prev, leitor];
+      }
+    });
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
+    <Box sx={{ maxWidth: 1200, margin: '0 auto', p: 3 }}>
+      {/* Cabeçalho */}
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary', mb: 4 }}>
         Gerenciar Leitores da Sentinela
-      </h1>
+      </Typography>
 
       {/* Formulário para criar nova lista */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Criar Nova Lista de Leitores
-        </h2>
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Criar Nova Lista de Leitores
+          </Typography>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Mês"
+                  value={mes}
+                  onChange={(e) => setMes(Number(e.target.value))}
+                  SelectProps={{
+                    native: true,
+                  }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((mesNum) => (
+                    <option key={mesNum} value={mesNum}>
+                      {new Date(2000, mesNum - 1).toLocaleDateString('pt-BR', { month: 'long' })}
+                    </option>
+                  ))}
+                </TextField>
+              </Grid>
 
-        {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Ano"
+                  value={ano}
+                  onChange={(e) => setAno(Number(e.target.value))}
+                  inputProps={{ min: 2000, max: 2100 }}
+                />
+              </Grid>
+            </Grid>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mês:
-              </label>
-              <select
-                value={mes}
-                onChange={(e) => setMes(Number(e.target.value))}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((mesNum) => (
-                  <option key={mesNum} value={mesNum}>
-                    {new Date(2000, mesNum - 1).toLocaleDateString('pt-BR', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ano:
-              </label>
-              <input
-                type="number"
-                value={ano}
-                onChange={(e) => setAno(Number(e.target.value))}
-                min="2000"
-                max="2100"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Processando...' : 'Criar Lista de Leitores'}
-          </button>
-        </form>
-      </div>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              fullWidth
+              sx={{ mt: 3 }}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
+            >
+              {loading ? 'Processando...' : 'Criar Lista de Leitores'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Lista de listas existentes */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Listas de Leitores Existentes
-        </h2>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Listas de Leitores Existentes
+          </Typography>
 
-        {listasExistentes.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">
-            Nenhuma lista de leitores criada ainda.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {listasExistentes.map((lista) => (
-              <div key={lista.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-medium text-gray-800">
-                    {lista.nomemes}
-                  </h3>
-                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    ID: {lista.idlistsentina}
-                  </span>
-                </div>
+          {listasExistentes.length === 0 ? (
+            <Typography variant="body1" color="text.secondary" textAlign="center" py={4}>
+              Nenhuma lista de leitores criada ainda.
+            </Typography>
+          ) : (
+            <Grid container spacing={3}>
+              {listasExistentes.map((lista) => (
+                <Grid item xs={12} key={lista.id}>
+                  <Paper elevation={2} sx={{ p: 2, position: 'relative' }}>
+                    {/* Header com ações */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box>
+                        <Typography variant="h6" component="h3">
+                          {lista.nomemes}
+                        </Typography>
+                        <Chip 
+                          label={`ID: ${lista.idlistsentina}`} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ mt: 1 }}
+                        />
+                      </Box>
+                      
+                      <Box>
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => abrirEdicao(lista)}
+                          sx={{ mr: 1 }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => abrirExclusao(lista)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong>Domingos do mês:</strong>
-                    <ul className="mt-1 space-y-1">
-                      {lista.dataleitorsentinela.map((data, index) => (
-                        <li key={index} className="text-gray-600">
-                          {formatarData(data)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                    {/* Tabela responsiva */}
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CalendarToday sx={{ fontSize: 16, mr: 1 }} />
+                                Data
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Person sx={{ fontSize: 16, mr: 1 }} />
+                                Leitor
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {lista.dataleitorsentinela.map((data, index) => (
+                            <TableRow key={index}>
+                              <TableCell 
+                                sx={{ 
+                                  fontWeight: 'bold',
+                                  display: { xs: 'none', sm: 'table-cell' }
+                                }}
+                              >
+                                {formatarData(data)}
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  {/* Mostrar data em mobile */}
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      display: { xs: 'inline', sm: 'none' },
+                                      fontWeight: 'bold',
+                                      mr: 1
+                                    }}
+                                  >
+                                    {formatarData(data)}:
+                                  </Typography>
+                                  
+                                  {lista.leitoriosparte[index] ? (
+                                    <Chip 
+                                      label={lista.leitoriosparte[index].nome} 
+                                      size="small" 
+                                      color="primary"
+                                      variant="outlined"
+                                    />
+                                  ) : (
+                                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                      Não atribuído
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
 
-                  <div>
-                    <strong>Leitores disponíveis ({lista.leitoriosparte.length}):</strong>
-                    <ul className="mt-1 space-y-1">
-                      {lista.leitoriosparte.map((leitor, index) => (
-                        <li key={index} className="text-gray-600">
-                          {leitor.nome}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                      Criado em: {new Date(lista.dataCriacao).toLocaleDateString('pt-BR')}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </CardContent>
+      </Card>
 
-                <div className="mt-3 text-xs text-gray-400">
-                  Criado em: {new Date(lista.dataCriacao).toLocaleDateString('pt-BR')}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+     // Dialog de Edição - ATUALIZADO com selects individuais
+        <Dialog open={editarOpen} onClose={fecharEdicao} maxWidth="lg" fullWidth>
+          <DialogTitle>
+            Editar Lista de Leitores - {listaEditando?.nomemes}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Atribua um leitor para cada domingo do mês:
+            </Typography>
+            
+            <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '40%', fontWeight: 'bold' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CalendarToday sx={{ fontSize: 16, mr: 1 }} />
+                        Data
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '60%', fontWeight: 'bold' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Person sx={{ fontSize: 16, mr: 1 }} />
+                        Leitor Atribuído
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {listaEditando?.dataleitorsentinela.map((data, index) => (
+                    <TableRow key={index}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>
+                        {formatarData(data)}
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          select
+                          fullWidth
+                          size="small"
+                          value={leitoresEditados[index]?.id || ''}
+                          onChange={(e) => {
+                            const leitorId = parseInt(e.target.value);
+                            const leitorSelecionado = todosLeitores.find(l => l.id === leitorId);
+                            
+                            if (leitorSelecionado) {
+                              const novosLeitores = [...leitoresEditados];
+                              novosLeitores[index] = leitorSelecionado;
+                              setLeitoresEditados(novosLeitores);
+                            }
+                          }}
+                        >
+                          <MenuItem value="">
+                            <em>Selecionar leitor...</em>
+                          </MenuItem>
+                          {todosLeitores.map((leitor) => (
+                            <MenuItem key={leitor.id} value={leitor.id}>
+                              {leitor.nome}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <Box sx={{ mt: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Leitores disponíveis:</strong> {todosLeitores.length} leitor(es)
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Domingos atribuídos:</strong> {leitoresEditados.filter(l => l).length} de {listaEditando?.dataleitorsentinela.length}
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={fecharEdicao}>Cancelar</Button>
+            <Button 
+              onClick={salvarEdicao} 
+              variant="contained" 
+            >
+              Salvar Alterações
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={excluirOpen} onClose={fecharExclusao}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir a lista de leitores <strong>"{listaExcluindo?.nomemes}"</strong>?
+            Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={fecharExclusao}>Cancelar</Button>
+          <Button onClick={confirmarExclusao} color="error" variant="contained">
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar para feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

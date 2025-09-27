@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leitorListSentinelaUtils, dbUtils } from '@/lib/utils';
+import { eachDayOfInterval, endOfMonth, startOfMonth, format, isSunday } from 'date-fns';
+
 
 // POST - Criar nova lista de leitores
 export async function POST(request: NextRequest) {
@@ -73,15 +75,17 @@ export async function GET() {
 
 // Função para calcular domingos do mês
 function calcularDomingosDoMes(mes: number, ano: number): string[] {
-  const domingos: string[] = [];
-  const diasNoMes = new Date(ano, mes, 0).getDate();
+  const inicioMes = new Date(ano, mes - 1, 1);
+  const fimMes = endOfMonth(inicioMes);
+  
+  const todosDias = eachDayOfInterval({
+    start: startOfMonth(inicioMes),
+    end: fimMes
+  });
 
-  for (let dia = 1; dia <= diasNoMes; dia++) {
-    const data = new Date(ano, mes - 1, dia);
-    if (data.getDay() === 0) { // 0 = Domingo
-      domingos.push(data.toISOString().split('T')[0]); // Formato YYYY-MM-DD
-    }
-  }
+  const domingos = todosDias
+    .filter(data => isSunday(data))
+    .map(data => format(data, 'yyyy-MM-dd'));
 
   return domingos;
 }

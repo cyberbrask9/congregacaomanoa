@@ -139,6 +139,42 @@ export const leitorListSentinelaUtils = {
     } as LeitorListSentinela;
   },
 
+  update: async (id: number, leitorData: Partial<LeitorListSentinela>): Promise<LeitorListSentinela> => {
+  const fields = [];
+  const values = [];
+  
+  if (leitorData.nomemes) {
+    fields.push('nomemes = ?');
+    values.push(leitorData.nomemes);
+  }
+  if (leitorData.dataleitorsentinela) {
+    fields.push('dataleitorsentinela = ?');
+    values.push(JSON.stringify(leitorData.dataleitorsentinela));
+  }
+  if (leitorData.leitoriosparte) {
+    fields.push('leitoriosparte = ?');
+    values.push(JSON.stringify(leitorData.leitoriosparte));
+  }
+
+  if (fields.length > 0) {
+    const stmt = db.prepare(`
+      UPDATE leitorlistsentinela 
+      SET ${fields.join(', ')} 
+      WHERE id = ?
+    `);
+    
+    stmt.run(...values, id);
+  }
+
+  const updatedObj = db.prepare('SELECT * FROM leitorlistsentinela WHERE id = ?').get(id) as any;
+  
+  return {
+    ...updatedObj,
+    dataleitorsentinela: JSON.parse(updatedObj.dataleitorsentinela),
+    leitoriosparte: JSON.parse(updatedObj.leitoriosparte)
+  } as LeitorListSentinela;
+},
+
   // Deletar leitorlistsentinela
   delete: async (id: number): Promise<void> => {
     const stmt = db.prepare('DELETE FROM leitorlistsentinela WHERE id = ?');
