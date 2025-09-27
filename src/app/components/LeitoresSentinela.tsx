@@ -285,11 +285,12 @@ const exportarParaPDF = (lista: LeitorListSentinela) => {
     }
   };
 
- const formatarData = (dataString: string) => {
+ const formatarData = (dataString: string | { data: string; leitor: any }) => {
   // Se a data já está no formato YYYY-MM-DD, converter corretamente
-  const [ano, mes, dia] = dataString.split('-').map(Number);
-  const data = new Date(ano, mes - 1, dia);
-  return data.toLocaleDateString('pt-BR');
+  const data = typeof dataString === 'string' ? dataString : dataString.data;
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const dataObj = new Date(ano, mes - 1, dia);
+  return dataObj.toLocaleDateString('pt-BR');
 };
 
   // Buscar todos os leitores disponíveis para edição
@@ -467,46 +468,62 @@ const exportarParaPDF = (lista: LeitorListSentinela) => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {lista.dataleitorsentinela.map((data, index) => (
-                            <TableRow key={index}>
-                              <TableCell 
-                                sx={{ 
-                                  fontWeight: 'bold',
-                                  display: { xs: 'none', sm: 'table-cell' }
-                                }}
-                              >
-                                {formatarData(data)}
-                              </TableCell>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  {/* Mostrar data em mobile */}
-                                  <Typography 
-                                    variant="body2" 
-                                    sx={{ 
-                                      display: { xs: 'inline', sm: 'none' },
-                                      fontWeight: 'bold',
-                                      mr: 1
-                                    }}
-                                  >
-                                    {formatarData(data)}:
+                {lista.dataleitorsentinela.map((item, index) => {
+                        // Extrair data do item (compatível com ambas estruturas)
+                        const data = typeof item === 'string' ? item : item.data;
+                        
+                        // Determinar qual leitor usar (prioridade: leitor do item > leitor da lista)
+                        let leitor = null;
+                        
+                        if (typeof item === 'object' && item.leitor) {
+                          // Nova estrutura: leitor vem dentro do item
+                          leitor = item.leitor;
+                        } else if (lista.leitoriosparte && lista.leitoriosparte[index]) {
+                          // Estrutura antiga: leitor vem do array leitoriosparte
+                          leitor = lista.leitoriosparte[index];
+                        }
+
+                        return (
+                          <TableRow key={index}>
+                            <TableCell 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                display: { xs: 'none', sm: 'table-cell' }
+                              }}
+                            >
+                              {formatarData(data)}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                {/* Mostrar data em mobile */}
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    display: { xs: 'inline', sm: 'none' },
+                                    fontWeight: 'bold',
+                                    mr: 1
+                                  }}
+                                >
+                                  {formatarData(data)}:
+                                </Typography>
+                                
+                                {leitor ? (
+                                  <Chip 
+                                    label={leitor.nome} 
+                                    size="small" 
+                                    color="primary"
+                                    variant="outlined"
+                                  />
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                    Não atribuído
                                   </Typography>
-                                  
-                                  {lista.leitoriosparte[index] ? (
-                                    <Chip 
-                                      label={lista.leitoriosparte[index].nome} 
-                                      size="small" 
-                                      color="primary"
-                                      variant="outlined"
-                                    />
-                                  ) : (
-                                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                                      Não atribuído
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                         </TableBody>
                       </Table>
                     </TableContainer>
