@@ -25,16 +25,19 @@ import {
   TableRow,
   Chip,
   Snackbar,
-  MenuItem,
+  MenuItem
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Download as DownloadIcon,
   CalendarToday,
   Person
 } from '@mui/icons-material';
 import { Objeto } from '@/types';
+import dynamic from 'next/dynamic';
 
+// Interface para leitorlistsentinela
 interface LeitorListSentinela {
   id: number;
   idlistsentina: string;
@@ -60,6 +63,11 @@ const LeitoresSentinela: React.FC = () => {
   // Estados para exclusão
   const [excluirOpen, setExcluirOpen] = useState<boolean>(false);
   const [listaExcluindo, setListaExcluindo] = useState<LeitorListSentinela | null>(null);
+  
+  // Estados para nomes repetidos
+  const [dialogRepetidoOpen, setDialogRepetidoOpen] = useState<boolean>(false);
+  const [nomesRepetidos, setNomesRepetidos] = useState<string[]>([]);
+  const [leitoresParaSalvar, setLeitoresParaSalvar] = useState<Objeto[]>([]);
   
   // Snackbar para feedback
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
@@ -108,7 +116,6 @@ const LeitoresSentinela: React.FC = () => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       
-      // Recarregar listas existentes
       await carregarListasExistentes();
       
     } catch (err: unknown) {
@@ -121,6 +128,75 @@ const LeitoresSentinela: React.FC = () => {
     }
   };
 
+  // Função para exportar PDF - DEFINIDA CORRETAMENTE
+  const exportarParaPDF = async (lista: LeitorListSentinela) => {
+    try {
+      // Dynamic import para evitar problemas de SSR
+      const { default: jsPDF } = await import('jspdf');
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      let yPosition = margin;
+      
+      // Título
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Lista de Leitores A Sentinela', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+      
+      // Mês e ano
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(lista.nomemes, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+      
+      // Data de geração
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 15;
+      
+      // Cabeçalho da tabela
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Data', margin, yPosition);
+      doc.text('Leitor', margin + 50, yPosition);
+      yPosition += 8;
+      
+      // Linha separadora
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 10;
+      
+      // Dados da tabela
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      
+      lista.dataleitorsentinela.forEach((data, index) => {
+        const leitor = lista.leitoriosparte[index];
+        
+        // Quebra de página se necessário
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        
+        doc.text(formatarData(data), margin, yPosition);
+        doc.text(leitor ? leitor.nome : 'Não atribuído', margin + 50, yPosition);
+        yPosition += 7;
+      });
+      
+      // Salvar PDF
+      doc.save(`Leitores_Sentinela_${lista.nomemes.replace(/ /g, '_')}.pdf`);
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      setSnackbarMessage('Erro ao gerar PDF. Tente novamente.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  
   // Funções para edição
   const abrirEdicao = (lista: LeitorListSentinela) => {
   setListaEditando(lista);
@@ -277,6 +353,7 @@ const LeitoresSentinela: React.FC = () => {
     });
   };
 
+ 
   return (
     <Box sx={{ maxWidth: 1200, margin: '0 auto', p: 3 }}>
       {/* Cabeçalho */}
@@ -369,6 +446,17 @@ const LeitoresSentinela: React.FC = () => {
                       </Box>
                       
                       <Box>
+                        {/* Botão Exportar */}
+                        <IconButton 
+                          color="success" 
+                          onClick={() => exportarParaPDF(lista)}
+                          sx={{ mr: 1 }}
+                          title="Exportar para PDF"
+                        >
+                          <DownloadIcon />
+                        </IconButton>
+                        
+                        {/* Botões Editar e Excluir */}
                         <IconButton 
                           color="primary" 
                           onClick={() => abrirEdicao(lista)}
