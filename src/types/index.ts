@@ -27,3 +27,24 @@ export interface Projeto {
   updated_at?: string;
 }
 export type Ordenacao = 'datafim_asc' | 'datafim_desc' | 'numero_asc' | 'numero_desc';
+
+export interface Leitor {
+  id: string;
+  nome: string;
+  privilégio?: string;
+  [key: string]: unknown;
+}
+
+export interface DataComLeitor {
+  data: string;
+  leitor: Leitor;
+}
+
+export interface LeitorListaSentinela {
+  id: number;
+  idlistsentina: string;
+  nomemes: string;
+  dataleitorsentinela: DataComLeitor[];
+  leitoriosparte: Leitor[];
+  dataCriacao: Date;
+}

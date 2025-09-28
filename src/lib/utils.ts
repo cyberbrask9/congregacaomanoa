@@ -1,15 +1,5 @@
 import db from './database';
-import { Objeto } from '@/types';
-
-// Adicione esta interface no início do arquivo (após as importações)
-export interface LeitorListSentinela {
-  id: number;
-  idlistsentina: string;
-  nomemes: string;
-  dataleitorsentinela: string[]; // Array de datas
-  leitoriosparte: Objeto[]; // Array de objetos leitores
-  dataCriacao: Date;
-}
+import { Objeto, LeitorListaSentinela, Leitor, DataComLeitor } from '@/types';
 
 // Interface para o resultado do banco de dados (row)
 interface DatabaseRow {
@@ -101,7 +91,7 @@ export const dbUtils = {
 // Operações para leitorlistsentinela
 export const leitorListSentinelaUtils = {
   // Criar novo leitorlistsentinela
-  create: async (leitorData: Omit<LeitorListSentinela, 'id' | 'dataCriacao'>): Promise<LeitorListSentinela> => {
+  create: async (leitorData: Omit<LeitorListaSentinela, 'id' | 'dataCriacao'>): Promise<LeitorListaSentinela> => {
     const stmt = db.prepare(`
       INSERT INTO leitorlistsentinela (idlistsentina, nomemes, dataleitorsentinela, leitoriosparte)
       VALUES (?, ?, ?, ?)
@@ -110,36 +100,36 @@ export const leitorListSentinelaUtils = {
     const result = stmt.run(
       leitorData.idlistsentina,
       leitorData.nomemes,
-      JSON.stringify(leitorData.dataleitorsentinela), // Salva array como JSON
-      JSON.stringify(leitorData.leitoriosparte) // Salva array de objetos como JSON
+      JSON.stringify(leitorData.dataleitorsentinela), // Salva array DataComLeitor[] como JSON
+      JSON.stringify(leitorData.leitoriosparte) // Salva array Leitor[] como JSON
     );
 
     const newObj = db.prepare('SELECT * FROM leitorlistsentinela WHERE id = ?').get(result.lastInsertRowid) as DatabaseRow;
     
-    // Converter strings JSON de volta para arrays
+    // Converter strings JSON de volta para arrays com tipos específicos
     return {
       ...newObj,
-      dataleitorsentinela: JSON.parse(newObj.dataleitorsentinela as string),
-      leitoriosparte: JSON.parse(newObj.leitoriosparte as string),
+      dataleitorsentinela: JSON.parse(newObj.dataleitorsentinela as string) as DataComLeitor[],
+      leitoriosparte: JSON.parse(newObj.leitoriosparte as string) as Leitor[],
       dataCriacao: new Date(newObj.dataCriacao as string)
-    } as LeitorListSentinela;
+    } as LeitorListaSentinela;
   },
 
   // Listar todos os leitorlistsentinela
-  findAll: async (): Promise<LeitorListSentinela[]> => {
+  findAll: async (): Promise<LeitorListaSentinela[]> => {
     const stmt = db.prepare('SELECT * FROM leitorlistsentinela ORDER BY dataCriacao DESC');
     const leitores = stmt.all() as DatabaseRow[];
     
     return leitores.map(leitor => ({
       ...leitor,
-      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela as string),
-      leitoriosparte: JSON.parse(leitor.leitoriosparte as string),
+      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela as string) as DataComLeitor[],
+      leitoriosparte: JSON.parse(leitor.leitoriosparte as string) as Leitor[],
       dataCriacao: new Date(leitor.dataCriacao as string)
-    })) as LeitorListSentinela[];
+    })) as LeitorListaSentinela[];
   },
 
   // Encontrar por idlistsentina
-  findByIdLista: async (idlistsentina: string): Promise<LeitorListSentinela | undefined> => {
+  findByIdLista: async (idlistsentina: string): Promise<LeitorListaSentinela | undefined> => {
     const stmt = db.prepare('SELECT * FROM leitorlistsentinela WHERE idlistsentina = ?');
     const leitor = stmt.get(idlistsentina) as DatabaseRow;
     
@@ -147,13 +137,14 @@ export const leitorListSentinelaUtils = {
     
     return {
       ...leitor,
-      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela as string),
-      leitoriosparte: JSON.parse(leitor.leitoriosparte as string),
+      dataleitorsentinela: JSON.parse(leitor.dataleitorsentinela as string) as DataComLeitor[],
+      leitoriosparte: JSON.parse(leitor.leitoriosparte as string) as Leitor[],
       dataCriacao: new Date(leitor.dataCriacao as string)
-    } as LeitorListSentinela;
+    } as LeitorListaSentinela;
   },
 
-  update: async (id: number, leitorData: Partial<LeitorListSentinela>): Promise<LeitorListSentinela> => {
+  // Atualizar leitorlistsentinela
+  update: async (id: number, leitorData: Partial<LeitorListaSentinela>): Promise<LeitorListaSentinela> => {
     const fields = [];
     const values = [];
     
@@ -184,10 +175,10 @@ export const leitorListSentinelaUtils = {
     
     return {
       ...updatedObj,
-      dataleitorsentinela: JSON.parse(updatedObj.dataleitorsentinela as string),
-      leitoriosparte: JSON.parse(updatedObj.leitoriosparte as string),
+      dataleitorsentinela: JSON.parse(updatedObj.dataleitorsentinela as string) as DataComLeitor[],
+      leitoriosparte: JSON.parse(updatedObj.leitoriosparte as string) as Leitor[],
       dataCriacao: new Date(updatedObj.dataCriacao as string)
-    } as LeitorListSentinela;
+    } as LeitorListaSentinela;
   },
 
   // Deletar leitorlistsentinela

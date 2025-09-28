@@ -1,28 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leitorListSentinelaUtils, dbUtils } from '@/lib/utils';
 import { eachDayOfInterval, endOfMonth, startOfMonth, format, isSunday } from 'date-fns';
-import { LeitorListSentinela } from '@/lib/utils';
-
-// Definir interfaces para os tipos
-interface Leitor {
-  id: string | number; // Aceita string OU number
-  nome: string;
-  privilégio?: string;
-  [key: string]: unknown;
-}
-
-interface DataComLeitor {
-  data: string;
-  leitor: Leitor;
-}
-
-interface LeitorListaSentinela {
-  idlistsentina: string;
-  nomemes: string;
-  dataleitorsentinela: DataComLeitor[];
-  leitoriosparte: Leitor[];
-  [key: string]: unknown; // Para outras propriedades que possam existir
-}
+import { Leitor, LeitorListaSentinela, DataComLeitor } from '@/types';
 
 // POST - Criar nova lista de leitores
 export async function POST(request: NextRequest) {
@@ -65,6 +44,7 @@ export async function POST(request: NextRequest) {
         ...objeto,
         id: objeto.id.toString() // Converte number para string
       })) as Leitor[];
+
     if (leitoresSentinela.length === 0) {
       return NextResponse.json(
         { error: 'Nenhum leitor com privilégio "Leitor A Sentinela" encontrado' },
@@ -121,7 +101,7 @@ export async function POST(request: NextRequest) {
 // GET - Listar todas as listas de leitores
 export async function GET() {
   try {
-    const listas = await leitorListSentinelaUtils.findAll() as LeitorListaSentinela[];
+    const listas = await leitorListSentinelaUtils.findAll();
     
     // Ordenar listas por data (mais recente primeiro)
     const listasOrdenadas = listas.sort((a, b) => {
