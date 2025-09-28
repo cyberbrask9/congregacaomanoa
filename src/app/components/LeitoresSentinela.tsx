@@ -205,20 +205,15 @@ const exportarTodasListasPDF = () => {
     // Título principal
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('RELATÓRIO COMPLETO - LEITORES DA SENTINELA', pageWidth / 2, currentY, { align: 'center' });
+    doc.text('LEITORES DA SENTINELA', pageWidth / 2, currentY, { align: 'center' });
     currentY += 10;
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text(`Período: ${listasExistentes.length} meses`, pageWidth / 2, currentY, { align: 'center' });
     currentY += 8;
-    
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, currentY, { align: 'center' });
-    currentY += 20;
-    
+     
     // ✅ USAR A MESMA ORDEM DA TELA (já está ordenada crescente em listasExistentes)
-    // Não precisa ordenar novamente, já que listasExistentes já está na ordem correta
     const listasParaExportar = listasExistentes; // Já está ordenada crescente
     
     // Processar cada lista na ORDEM CRESCENTE
@@ -233,19 +228,13 @@ const exportarTodasListasPDF = () => {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text(lista.nomemes.toUpperCase(), margin, currentY);
-      currentY += 8;
+      currentY += 3;
       
       // Informações da lista
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Domingos: ${lista.dataleitorsentinela.length}`, margin, currentY);
-      doc.text(`Leitores atribuídos: ${lista.leitoriosparte.filter(l => l).length}`, pageWidth - margin, currentY, { align: 'right' });
-      currentY += 6;
-      
-      doc.text(`Criado em: ${new Date(lista.dataCriacao).toLocaleDateString('pt-BR')}`, margin, currentY);
-      currentY += 10;
-      
-      // Preparar dados da tabela
+     
+       // Preparar dados da tabela
       const tableData = lista.dataleitorsentinela.map((data, idx) => [
         formatarData(data),
         lista.leitoriosparte[idx]?.nome || 'NÃO ATRIBUÍDO'
@@ -298,7 +287,7 @@ const exportarTodasListasPDF = () => {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 100, 100);
-    doc.text('Sistema de Gerenciamento de Leitores - Congregação Cristã', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text('Lista de leitores A Sentinala', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     
     // Salvar PDF
     const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
