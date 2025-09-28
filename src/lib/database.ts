@@ -5,10 +5,11 @@ import fs from 'fs';
 const dbPath = join(process.cwd(), 'data', 'database.sqlite');
 
 // Interface para a tabela 'leitors'
-export interface Leitor {
-  id: number;
+interface Leitor {
+  id: string | number; // Aceita string OU number
   nome: string;
-  data: string;
+  privilégio?: string;
+  [key: string]: unknown;
 }
 
 // Interfaces para tipagem

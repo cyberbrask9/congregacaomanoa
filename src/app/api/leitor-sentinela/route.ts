@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leitorListSentinelaUtils, dbUtils } from '@/lib/utils';
 import { eachDayOfInterval, endOfMonth, startOfMonth, format, isSunday } from 'date-fns';
+import { LeitorListSentinela } from '@/lib/utils';
+
+// Definir interfaces para os tipos
+interface Leitor {
+  id: string | number; // Aceita string OU number
+  nome: string;
+  privilégio?: string;
+  [key: string]: unknown;
+}
+
+interface DataComLeitor {
+  data: string;
+  leitor: Leitor;
+}
+
+interface LeitorListaSentinela {
+  idlistsentina: string;
+  nomemes: string;
+  dataleitorsentinela: DataComLeitor[];
+  leitoriosparte: Leitor[];
+  [key: string]: unknown; // Para outras propriedades que possam existir
+}
 
 // POST - Criar nova lista de leitores
 export async function POST(request: NextRequest) {
@@ -35,10 +57,14 @@ export async function POST(request: NextRequest) {
 
     // 2. Buscar leitores com privilégio 'Leitor A Sentinela'
     const todosObjetos = await dbUtils.findAll();
-    const leitoresSentinela = todosObjetos.filter(objeto => 
-      objeto.privilégio && objeto.privilégio.includes('Leitor A Sentinela')
-    );
-
+    const leitoresSentinela = todosObjetos
+      .filter(objeto => 
+        objeto.privilégio && objeto.privilégio.includes('Leitor A Sentinela')
+      )
+      .map(objeto => ({
+        ...objeto,
+        id: objeto.id.toString() // Converte number para string
+      })) as Leitor[];
     if (leitoresSentinela.length === 0) {
       return NextResponse.json(
         { error: 'Nenhum leitor com privilégio "Leitor A Sentinela" encontrado' },
@@ -60,7 +86,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 6. Criar o array de datas com os leitores designados
-    const datasComLeitores = domingos.map((data, index) => ({
+    const datasComLeitores: DataComLeitor[] = domingos.map((data, index) => ({
       data,
       leitor: leitoresDistribuidos[index]
     }));
@@ -72,13 +98,11 @@ export async function POST(request: NextRequest) {
     ];
 
     const novoLeitorLista = await leitorListSentinelaUtils.create({
-        idlistsentina: `lista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        nomemes: `${nomesMeses[mes - 1]} de ${ano}`,
-        dataleitorsentinela: datasComLeitores, // Nova estrutura com objetos
-        // Ou mantenha a estrutura antiga se preferir:
-        // dataleitorsentinela: domingos, // Apenas as datas como strings
-        leitoriosparte: leitoresSentinela
-        });
+      idlistsentina: `lista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      nomemes: `${nomesMeses[mes - 1]} de ${ano}`,
+      dataleitorsentinela: datasComLeitores,
+      leitoriosparte: leitoresSentinela
+    });
 
     return NextResponse.json({
       message: 'Lista de leitores criada com sucesso!',
@@ -97,7 +121,7 @@ export async function POST(request: NextRequest) {
 // GET - Listar todas as listas de leitores
 export async function GET() {
   try {
-    const listas = await leitorListSentinelaUtils.findAll();
+    const listas = await leitorListSentinelaUtils.findAll() as LeitorListaSentinela[];
     
     // Ordenar listas por data (mais recente primeiro)
     const listasOrdenadas = listas.sort((a, b) => {
@@ -138,7 +162,7 @@ function calcularDomingosDoMes(mes: number, ano: number): string[] {
 }
 
 // Função para determinar o próximo leitor da sequência
-function determinarProximoLeitor(leitores: any[], listasAnteriores: any[]): any {
+function determinarProximoLeitor(leitores: Leitor[], listasAnteriores: LeitorListaSentinela[]): Leitor {
   if (listasAnteriores.length === 0) {
     return leitores[0]; // Primeira lista, começa com o primeiro leitor
   }
@@ -191,13 +215,13 @@ function determinarProximoLeitor(leitores: any[], listasAnteriores: any[]): any 
 
 // Função para distribuir leitores sequencialmente
 function distribuirLeitoresSequencialmente(
-  leitores: any[], 
+  leitores: Leitor[], 
   quantidadeDomingos: number, 
-  leitorInicial: any
-): any[] {
+  leitorInicial: Leitor
+): Leitor[] {
   if (leitores.length === 0) return [];
   
-  const resultado: any[] = [];
+  const resultado: Leitor[] = [];
   
   // Encontrar o índice do leitor inicial
   let currentIndex = leitores.findIndex(leitor => 

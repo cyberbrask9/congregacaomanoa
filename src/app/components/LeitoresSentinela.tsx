@@ -39,6 +39,28 @@ import { Objeto } from '@/types';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+//interface estendida para o objeto jsPDF que inclua a propriedade lastAutoTable.
+interface JsPDFWithAutoTable extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+    [key: string]: unknown;
+  };
+}
+
+// Interface para lista de leitores desegnados
+interface LeitorDesignado {
+  id: string;
+  nome: string;
+  // Adicione outras propriedades que o leitor possa ter
+  privilégio?: string;
+  foto?: string;
+  [key: string]: unknown; // Para propriedades adicionais
+}
+
+interface DataComLeitor {
+  data: string;
+  leitor: LeitorDesignado;
+}
 
 // Interface para leitorlistsentinela
 interface LeitorListSentinela {
@@ -268,7 +290,8 @@ const exportarTodasListasPDF = () => {
       });
       
       // Atualizar posição Y para próxima lista
-      currentY = (doc as any).lastAutoTable.finalY + 15;
+      currentY = (doc as JsPDFWithAutoTable).lastAutoTable!.finalY + 15;
+
       
       // Adicionar linha separadora entre listas (exceto na última)
       if (index < listasParaExportar.length - 1) {
@@ -420,7 +443,7 @@ const exportarTodasListasPDF = () => {
     }
   };
 
- const formatarData = (dataString: string | { data: string; leitor: any }) => {
+  const formatarData = (dataString: string | DataComLeitor) => {
   // Se a data já está no formato YYYY-MM-DD, converter corretamente
   const data = typeof dataString === 'string' ? dataString : dataString.data;
   const [ano, mes, dia] = data.split('-').map(Number);
@@ -785,7 +808,7 @@ const exportarTodasListasPDF = () => {
         <DialogTitle>Confirmar Exclusão</DialogTitle>
         <DialogContent>
           <Typography>
-            Tem certeza que deseja excluir a lista de leitores <strong>"{listaExcluindo?.nomemes}"</strong>?
+            Tem certeza que deseja excluir a lista de leitores <strong>{listaExcluindo?.nomemes}</strong>?
             Esta ação não pode ser desfeita.
           </Typography>
         </DialogContent>
