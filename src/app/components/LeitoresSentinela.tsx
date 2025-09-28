@@ -25,7 +25,7 @@ import {
   TableRow,
   Chip,
   Snackbar,
-  MenuItem
+  MenuItem,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -33,6 +33,7 @@ import {
   Download as DownloadIcon,
   CalendarToday,
   Person
+
 } from '@mui/icons-material';
 import { Objeto } from '@/types';
 import { jsPDF } from 'jspdf';
@@ -82,16 +83,36 @@ const LeitoresSentinela: React.FC = () => {
   }, []);
 
   const carregarListasExistentes = async () => {
-    try {
-      const response = await fetch('/api/leitor-sentinela');
-      if (response.ok) {
-        const listas = await response.json();
-        setListasExistentes(listas);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar listas:', error);
+  try {
+    const response = await fetch('/api/leitor-sentinela');
+    if (response.ok) {
+      const listas: LeitorListSentinela[] = await response.json();
+      
+      // Ordenar por data (mais antigo primeiro)
+      const listasOrdenadas = listas.sort((a, b) => {
+        // Extrair mês e ano do nomemes (ex: "Setembro de 2025")
+        const extrairData = (nomemes: string) => {
+          const meses = [
+            'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+            'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+          ];
+          
+          const [mesStr, , anoStr] = nomemes.toLowerCase().split(' ');
+          const mes = meses.indexOf(mesStr) + 1;
+          const ano = parseInt(anoStr);
+          
+          return new Date(ano, mes - 1).getTime();
+        };
+        
+        return extrairData(a.nomemes) - extrairData(b.nomemes);
+      });
+      
+      setListasExistentes(listasOrdenadas);
     }
-  };
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +191,131 @@ const exportarParaPDF = (lista: LeitorListSentinela) => {
     setSnackbarOpen(true);
   }
 };
+
+// função para exportar todas as listas
+const exportarTodasListasPDF = () => {
+  try {
+    const doc = new jsPDF();
+    
+    // Configurações
+    let currentY = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    
+    // Título principal
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RELATÓRIO COMPLETO - LEITORES DA SENTINELA', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${listasExistentes.length} meses`, pageWidth / 2, currentY, { align: 'center' });
+    currentY += 8;
+    
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, currentY, { align: 'center' });
+    currentY += 20;
+    
+    // ✅ USAR A MESMA ORDEM DA TELA (já está ordenada crescente em listasExistentes)
+    // Não precisa ordenar novamente, já que listasExistentes já está na ordem correta
+    const listasParaExportar = listasExistentes; // Já está ordenada crescente
+    
+    // Processar cada lista na ORDEM CRESCENTE
+    listasParaExportar.forEach((lista, index) => {
+      // Verificar se precisa de nova página
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 15;
+      }
+      
+      // Título da lista individual
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(lista.nomemes.toUpperCase(), margin, currentY);
+      currentY += 8;
+      
+      // Informações da lista
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Domingos: ${lista.dataleitorsentinela.length}`, margin, currentY);
+      doc.text(`Leitores atribuídos: ${lista.leitoriosparte.filter(l => l).length}`, pageWidth - margin, currentY, { align: 'right' });
+      currentY += 6;
+      
+      doc.text(`Criado em: ${new Date(lista.dataCriacao).toLocaleDateString('pt-BR')}`, margin, currentY);
+      currentY += 10;
+      
+      // Preparar dados da tabela
+      const tableData = lista.dataleitorsentinela.map((data, idx) => [
+        formatarData(data),
+        lista.leitoriosparte[idx]?.nome || 'NÃO ATRIBUÍDO'
+      ]);
+      
+      // Adicionar tabela da lista atual
+      autoTable(doc, {
+        startY: currentY,
+        head: [['DATA', 'LEITOR']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [70, 130, 180],
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          halign: 'center'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 'auto', halign: 'left' }
+        },
+        margin: { horizontal: margin }
+      });
+      
+      // Atualizar posição Y para próxima lista
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+      
+      // Adicionar linha separadora entre listas (exceto na última)
+      if (index < listasParaExportar.length - 1) {
+        if (currentY > 270) {
+          doc.addPage();
+          currentY = 15;
+        } else {
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, currentY, pageWidth - margin, currentY);
+          currentY += 10;
+        }
+      }
+    });
+    
+    // Rodapé final
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Sistema de Gerenciamento de Leitores - Congregação Cristã', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    
+    // Salvar PDF
+    const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    doc.save(`Relatorio_Completo_Leitores_${dataAtual}.pdf`);
+    
+    setSnackbarMessage(`Relatório com ${listasExistentes.length} listas exportado com sucesso!`);
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+  } catch (error) {
+    console.error('Erro ao exportar todas as listas:', error);
+    setSnackbarMessage('Erro ao gerar relatório completo.');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
+
   
   // Funções para edição
   const abrirEdicao = (lista: LeitorListSentinela) => {
@@ -335,7 +481,26 @@ const exportarParaPDF = (lista: LeitorListSentinela) => {
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary', mb: 4 }}>
         Leitores da Sentinela
       </Typography>
-
+      
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+        Gerenciar Leitores da Sentinela
+      </Typography>
+      
+      {listasExistentes.length > 0 && (
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<DownloadIcon />}
+          onClick={exportarTodasListasPDF}
+          disabled={listasExistentes.length === 0}
+        >
+          Exportar Todas as Listas
+        </Button>
+        
+      )}    
+    </Box>
+        
       {/* Formulário para criar nova lista */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
