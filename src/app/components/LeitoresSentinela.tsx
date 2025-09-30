@@ -32,7 +32,8 @@ import {
   Delete as DeleteIcon,
   Download as DownloadIcon,
   CalendarToday,
-  Person
+  Person,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { Objeto } from '@/types';
 import { jsPDF } from 'jspdf';
@@ -103,7 +104,25 @@ const LeitoresSentinela: React.FC = () => {
 
   // Buscar todos os leitores disponíveis para edição
   const [todosLeitores, setTodosLeitores] = useState<Objeto[]>([]);
+  
+  // Estados para diálogo de lista existente
+  const [dialogListaExistenteOpen, setDialogListaExistenteOpen] = useState<boolean>(false);
+  const [mesExistente, setMesExistente] = useState<string>('');
 
+  // Função para verificar se já existe lista para o mês/ano
+  const verificarListaExistente = (mes: number, ano: number): boolean => {
+    const nomesMeses = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    
+    const nomeMesBusca = nomesMeses[mes - 1];
+    const nomeCompletoBusca = `${nomeMesBusca} de ${ano}`.toLowerCase();
+    
+    return listasExistentes.some(lista => 
+      lista.nomemes.toLowerCase() === nomeCompletoBusca
+    );
+  };
   // Carregar listas existentes ao montar o componente
   useEffect(() => {
     carregarListasExistentes();
@@ -188,35 +207,48 @@ const LeitoresSentinela: React.FC = () => {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/leitor-sentinela', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mes, ano }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao processar leitores');
-      }
-
-      setSnackbarMessage('Lista de leitores criada com sucesso!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      await carregarListasExistentes(); // <--- OK! O estado é atualizado após a criação.
-      
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setSnackbarMessage(errorMessage);
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    } finally {
+       // VERIFICAÇÃO: Checar se já existe lista para este mês/ano
+    if (verificarListaExistente(mes, ano)) {
+      const nomesMeses = [
+        'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      ];
+      const nomeMes = nomesMeses[mes - 1];
+      setMesExistente(`${nomeMes} de ${ano}`);
+      setDialogListaExistenteOpen(true);
       setLoading(false);
+      return;
     }
-  };
+
+    const response = await fetch('/api/leitor-sentinela', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ mes, ano }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Erro ao processar leitores');
+    }
+
+    setSnackbarMessage('Lista de leitores criada com sucesso!');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+    await carregarListasExistentes();
+    
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+    setSnackbarMessage(errorMessage);
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formatarData = (dataString: string | DataComLeitor) => {
     // Se a data já está no formato YYYY-MM-DD, converter corretamente
@@ -817,6 +849,42 @@ const salvarEdicao = async () => {
           )}
         </CardContent>
       </Card>
+
+       {/* Dialog de Lista Já Existente */}
+      <Dialog 
+        open={dialogListaExistenteOpen} 
+        onClose={() => setDialogListaExistenteOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: '#fff3cd', 
+          color: '#856404',
+          borderBottom: '1px solid #ffeaa7'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <WarningIcon sx={{ mr: 1, color: '#ffc107' }} />
+            Atenção
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body1">
+            Já existe uma lista para o mês de <strong>{mesExistente}</strong>.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+            Não é possível criar duas listas para o mesmo mês.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDialogListaExistenteOpen(false)} 
+            variant="contained" 
+            color="primary"
+          >
+            Entendi
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog de Edição */}
       <Dialog open={editarOpen} onClose={fecharEdicao} maxWidth="lg" fullWidth>
