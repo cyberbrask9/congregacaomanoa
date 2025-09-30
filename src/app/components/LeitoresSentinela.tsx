@@ -136,9 +136,24 @@ const LeitoresSentinela: React.FC = () => {
       if (response.ok) {
         const listas: LeitorListSentinela[] = await response.json();
         
+        console.log('Listas carregadas da API:', listas);
+
+        // CORREÇÃO: Garantir desserialização adequada
+        const listasComArraysCorretos = listas.map(lista => ({
+          ...lista,
+          // Desserializar os arrays se vierem como string
+          dataleitorsentinela: Array.isArray(lista.dataleitorsentinela) 
+            ? lista.dataleitorsentinela 
+            : JSON.parse(lista.dataleitorsentinela as unknown as string),
+          leitoriosparte: Array.isArray(lista.leitoriosparte)
+            ? lista.leitoriosparte
+            : JSON.parse(lista.leitoriosparte as unknown as string)
+        }));
+
+        console.log('Listas com arrays desserializados:', listasComArraysCorretos);
+        
         // Ordenar por data (mais antigo primeiro)
-        const listasOrdenadas = listas.sort((a, b) => {
-          // Extrair mês e ano do nomemes (ex: "Setembro de 2025")
+        const listasOrdenadas = listasComArraysCorretos.sort((a, b) => {
           const extrairData = (nomemes: string) => {
             const meses = [
               'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -161,6 +176,10 @@ const LeitoresSentinela: React.FC = () => {
       console.error('Erro ao carregar listas:', error);
     }
   };
+  //debug e controle de mudança de estado
+  useEffect(() => {
+  console.log('Estado listasExistentes atualizado:', listasExistentes);
+}, [listasExistentes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,179 +228,204 @@ const LeitoresSentinela: React.FC = () => {
 
   // Função para exportar PDF - DEFINIDA CORRETAMENTE
   const exportarParaPDF = (lista: LeitorListSentinela) => {
-    try {
-      const doc = new jsPDF();
+  try {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(16);
+    doc.text('Leitores da Sentinela', 105, 15, { align: 'center' });
+    doc.text(lista.nomemes, 105, 25, { align: 'center' });
+    
+    // DEBUG: Verificar os dados antes de gerar o PDF
+    console.log('=== EXPORTANDO PDF ===');
+    console.log('Lista completa:', lista);
+    console.log('dataleitorsentinela:', lista.dataleitorsentinela);
+    console.log('leitoriosparte:', lista.leitoriosparte);
+    
+    // Dados da tabela - CORREÇÃO APLICADA
+    const body = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
+      // CORREÇÃO: Usar leitoriosparte[index] em vez de item.leitor
+      const leitor = lista.leitoriosparte && lista.leitoriosparte[index];
+      const nomeLeitor = leitor?.nome || 'Não atribuído';
       
-      // Título
-      doc.setFontSize(16);
-      doc.text('Leitores da Sentinela', 105, 15, { align: 'center' });
-      doc.text(lista.nomemes, 105, 25, { align: 'center' });
+      console.log(`Data ${index}:`, item.data, 'Leitor:', nomeLeitor);
       
-      // Dados da tabela
-      // CORREÇÃO: O leitor atribuído está dentro de cada objeto de dataleitorsentinela
-      const body = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item) => {
-        // Obter o nome do leitor designado
-        const nomeLeitor = item.leitor?.nome || 'Não atribuído';
-        return [
-          formatarData(item.data), // Passa a data correta
-          nomeLeitor
-        ];
-      });
+      return [
+        formatarData(item.data), // Passa a data correta
+        nomeLeitor
+      ];
+    });
 
-      // FORMA CORRETA - autoTable é uma função separada
-      autoTable(doc, {
-        startY: 35,
-        head: [['Data', 'Leitor']],
-        body: body,
-        styles: { fontSize: 14 },
-        headStyles: { 
-          fillColor: [61, 142, 64],
-          textColor: 255 
-        },
-        alternateRowStyles: { 
-          fillColor: [240, 240, 240] 
-        }
-      });
+    console.log('Body do PDF:', body);
 
-      doc.save(`leitores_${lista.nomemes.replace(/ /g, '_')}.pdf`);
-      
-    } catch (error) {
-      console.error('Erro PDF:', error);
-      
-      let errorMessage = 'Erro ao gerar PDF';
-      if (error instanceof Error) {
-        errorMessage += ': ' + error.message;
+    // FORMA CORRETA - autoTable é uma função separada
+    autoTable(doc, {
+      startY: 35,
+      head: [['Data', 'Leitor']],
+      body: body,
+      styles: { fontSize: 14 },
+      headStyles: { 
+        fillColor: [61, 142, 64],
+        textColor: 255 
+      },
+      alternateRowStyles: { 
+        fillColor: [240, 240, 240] 
       }
-      
-      setSnackbarMessage(errorMessage);
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+    });
+
+    doc.save(`leitores_${lista.nomemes.replace(/ /g, '_')}.pdf`);
+    
+  } catch (error) {
+    console.error('Erro PDF:', error);
+    
+    let errorMessage = 'Erro ao gerar PDF';
+    if (error instanceof Error) {
+      errorMessage += ': ' + error.message;
     }
-  };
+    
+    setSnackbarMessage(errorMessage);
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
 
   // função para exportar todas as listas
   const exportarTodasListasPDF = () => {
-    try {
-      const doc = new jsPDF();
+  try {
+    const doc = new jsPDF();
+    
+    // Configurações
+    let currentY = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    
+    // Título principal
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LEITORES DA SENTINELA', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Período: ${listasExistentes.length} meses`, pageWidth / 2, currentY, { align: 'center' });
+    currentY += 8;
+    
+    // ✅ USAR A MESMA ORDEM DA TELA (já está ordenada crescente em listasExistentes)
+    const listasParaExportar = listasExistentes; // Já está ordenada crescente
+    
+    // Processar cada lista na ORDEM CRESCENTE
+    listasParaExportar.forEach((lista, index) => {
+      // Verificar se precisa de nova página
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 15;
+      }
       
-      // Configurações
-      let currentY = 15;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 15;
-      
-      // Título principal
-      doc.setFontSize(20);
+      // Título da lista individual
+      doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('LEITORES DA SENTINELA', pageWidth / 2, currentY, { align: 'center' });
-      currentY += 10;
+      doc.text(lista.nomemes.toUpperCase(), margin, currentY);
+      currentY += 3;
       
-      doc.setFontSize(12);
+      // Informações da lista
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Período: ${listasExistentes.length} meses`, pageWidth / 2, currentY, { align: 'center' });
-      currentY += 8;
-      
-      // ✅ USAR A MESMA ORDEM DA TELA (já está ordenada crescente em listasExistentes)
-      const listasParaExportar = listasExistentes; // Já está ordenada crescente
-      
-      // Processar cada lista na ORDEM CRESCENTE
-      listasParaExportar.forEach((lista, index) => {
-        // Verificar se precisa de nova página
-        if (currentY > 250) {
-          doc.addPage();
-          currentY = 15;
-        }
+    
+      // Preparar dados da tabela - CORREÇÃO APLICADA
+      const tableData = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
+        // CORREÇÃO: Usar leitoriosparte[index] em vez de item.leitor
+        const leitor = lista.leitoriosparte && lista.leitoriosparte[index];
+        const nomeLeitor = leitor?.nome || 'NÃO ATRIBUÍDO';
         
-        // Título da lista individual
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text(lista.nomemes.toUpperCase(), margin, currentY);
-        currentY += 3;
-        
-        // Informações da lista
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-      
-        // Preparar dados da tabela
-        const tableData = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item) => [
+        return [
           formatarData(item.data),
-          item.leitor?.nome || 'NÃO ATRIBUÍDO'
-        ]);
-        
-        // Adicionar tabela da lista atual
-        autoTable(doc, {
-          startY: currentY,
-          head: [['DATA', 'LEITOR']],
-          body: tableData,
-          theme: 'grid',
-          headStyles: {
-            fillColor: [70, 130, 180],
-            textColor: 255,
-            fontStyle: 'bold',
-            halign: 'center'
-          },
-          styles: {
-            fontSize: 9,
-            cellPadding: 3,
-            halign: 'center'
-          },
-          alternateRowStyles: {
-            fillColor: [245, 245, 245]
-          },
-          columnStyles: {
-            0: { cellWidth: 40 },
-            1: { cellWidth: 'auto', halign: 'left' }
-          },
-          margin: { horizontal: margin }
-        });
-        
-        // Atualizar posição Y para próxima lista
-        currentY = (doc as JsPDFWithAutoTable).lastAutoTable!.finalY + 15;
-
-        
-        // Adicionar linha separadora entre listas (exceto na última)
-        if (index < listasParaExportar.length - 1) {
-          if (currentY > 270) {
-            doc.addPage();
-            currentY = 15;
-          } else {
-            doc.setDrawColor(200, 200, 200);
-            doc.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 10;
-          }
-        }
+          nomeLeitor
+        ];
       });
       
-      // Rodapé final
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(100, 100, 100);
-      doc.text('Lista de leitores A Sentinala', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      // Adicionar tabela da lista atual
+      autoTable(doc, {
+        startY: currentY,
+        head: [['DATA', 'LEITOR']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [70, 130, 180],
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          halign: 'center'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 'auto', halign: 'left' }
+        },
+        margin: { horizontal: margin }
+      });
       
-      // Salvar PDF
-      const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-      doc.save(`Relatorio_Completo_Leitores_${dataAtual}.pdf`);
+      // Atualizar posição Y para próxima lista
+      currentY = (doc as JsPDFWithAutoTable).lastAutoTable!.finalY + 15;
+
       
-      setSnackbarMessage(`Relatório com ${listasExistentes.length} listas exportado com sucesso!`);
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-    } catch (error) {
-      console.error('Erro ao exportar todas as listas:', error);
-      setSnackbarMessage('Erro ao gerar relatório completo.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
+      // Adicionar linha separadora entre listas (exceto na última)
+      if (index < listasParaExportar.length - 1) {
+        if (currentY > 270) {
+          doc.addPage();
+          currentY = 15;
+        } else {
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margin, currentY, pageWidth - margin, currentY);
+          currentY += 10;
+        }
+      }
+    });
+    
+    // Rodapé final
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Lista de leitores A Sentinala', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    
+    // Salvar PDF
+    const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    doc.save(`Relatorio_Completo_Leitores_${dataAtual}.pdf`);
+    
+    setSnackbarMessage(`Relatório com ${listasExistentes.length} listas exportado com sucesso!`);
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+  } catch (error) {
+    console.error('Erro ao exportar todas as listas:', error);
+    setSnackbarMessage('Erro ao gerar relatório completo.');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
 
   // Funções para edição
   const abrirEdicao = (lista: LeitorListSentinela) => {
+  console.log('Abrindo edição - Lista original:', {
+    id: lista.id,
+    dataleitorsentinela: lista.dataleitorsentinela,
+    leitoriosparte: lista.leitoriosparte
+  });
+
   setListaEditando(lista);
   
-  // CORREÇÃO MELHORADA: Inicializar o array de leitores editados 
-  const leitoresIniciais = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map(item =>
+  // CORREÇÃO: Garantir que estamos usando a estrutura correta
+  // O leitor designado está em dataleitorsentinela[index].leitor
+  const leitoresIniciais = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map(item => 
     item.leitor || null
   );
   
+  console.log('Leitores iniciais para edição:', leitoresIniciais);
   setLeitoresEditados(leitoresIniciais);
   setEditarOpen(true);
 };
@@ -392,60 +436,68 @@ const LeitoresSentinela: React.FC = () => {
     setLeitoresEditados([]);
   };
 
-  // função para salvar a edição - VERSÃO CORRIGIDA
+  // função para salvar a edição - CORRIGIDA
 const salvarEdicao = async () => {
   if (!listaEditando) return;
 
   try {
+    console.log('=== INICIANDO SALVAR EDIÇÃO ===');
+    console.log('Lista editando:', listaEditando);
+    console.log('Leitores editados:', leitoresEditados);
+
     // Filtrar apenas leitores que foram atribuídos (remover null/undefined)
     const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
+
+    console.log('Leitores atribuídos filtrados:', leitoresAtribuidos);
 
     // Verificar se há nomes repetidos
     const nomesLeitores = leitoresAtribuidos.map(leitor => leitor.nome);
     const nomesUnicos = new Set(nomesLeitores);
     
     if (nomesLeitores.length !== nomesUnicos.size) {
-      // Encontrar nomes repetidos
       const nomesRepetidos = nomesLeitores.filter((nome, index) => 
         nomesLeitores.indexOf(nome) !== index
       );
       const nomesRepetidosUnicos = [...new Set(nomesRepetidos)];
       
-      // Mostrar diálogo de confirmação para nomes repetidos
       const confirmar = window.confirm(
         `Os seguintes nomes se repetem na lista: ${nomesRepetidosUnicos.join(', ')}\n\nDeseja salvar assim mesmo?`
       );
       
       if (!confirmar) {
-        return; // Abortar se o usuário cancelar
+        return;
       }
     }
 
-    // CORREÇÃO CRÍTICA: Atualizar também o dataleitorsentinela
-    const dataleitorsentinelaAtualizado = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => ({
-      ...item,
-      leitor: leitoresEditados[index] || null
-    }));
-
-    console.log('Enviando para atualização:', {
-      listaId: listaEditando.id,
-      leitoresAtribuidos: leitoresAtribuidos,
-      dataleitorsentinela: dataleitorsentinelaAtualizado
+    // CORREÇÃO CRÍTICA: Atualizar dataleitorsentinela mantendo a estrutura correta
+    const dataleitorsentinelaAtualizado = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
+      const leitorAtual = leitoresEditados[index];
+      return {
+        data: item.data, // Manter a data original
+        leitor: leitorAtual || null // Atualizar o leitor
+      };
     });
 
-    // Atualizar a lista no banco de dados com AMBOS os arrays
+    console.log('Dataleitorsentinela atualizado:', dataleitorsentinelaAtualizado);
+
+    // Preparar dados para enviar
+    const dadosParaAtualizar = {
+      leitoriosparte: leitoresAtribuidos,
+      dataleitorsentinela: dataleitorsentinelaAtualizado
+    };
+
+    console.log('Enviando para API:', dadosParaAtualizar);
+
+    // Atualizar a lista no banco de dados
     const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        leitoriosparte: leitoresAtribuidos,
-        dataleitorsentinela: dataleitorsentinelaAtualizado // CORREÇÃO: enviar também
-      }),
+      body: JSON.stringify(dadosParaAtualizar),
     });
 
     if (!updateResponse.ok) {
       const errorText = await updateResponse.text();
-      console.error('Erro na resposta:', errorText);
+      console.error('Erro na resposta da API:', errorText);
       throw new Error('Erro ao atualizar lista');
     }
 
@@ -453,23 +505,25 @@ const salvarEdicao = async () => {
     console.log('Resposta do backend:', result);
     
     const listaAtualizadaDoBackend: LeitorListSentinela = result.leitorLista;
-    
-    // CORREÇÃO: Atualização mais robusta do estado
+    console.log('Lista atualizada do backend:', listaAtualizadaDoBackend);
+
+    // CORREÇÃO CRÍTICA: Atualizar o estado local MANTENDO a ordenação atual
     setListasExistentes(prevLists => {
-      const novasListas = prevLists.map(lista => 
-        lista.id === listaAtualizadaDoBackend.id 
-          ? { 
-              ...listaAtualizadaDoBackend,
-              // Garantir que as datas sejam mantidas no formato correto
-              dataleitorsentinela: listaAtualizadaDoBackend.dataleitorsentinela as unknown as DataComLeitor[]
-            }
-          : lista
-      );
+      const novasListas = prevLists.map(lista => {
+        if (lista.id === listaAtualizadaDoBackend.id) {
+          console.log('Atualizando lista no estado local:', listaAtualizadaDoBackend);
+          return {
+            ...listaAtualizadaDoBackend
+          };
+        }
+        return lista;
+      });
       
-      // Ordenação
-      return novasListas.sort((a, b) => 
-        new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()
-      );
+      console.log('Novas listas após atualização:', novasListas);
+      
+      // CORREÇÃO: MANTER A MESMA ORDENAÇÃO que já estava na interface
+      // Não reordenar, apenas manter a ordem atual
+      return novasListas;
     });
 
     setSnackbarMessage('Lista atualizada com sucesso!');
@@ -478,8 +532,11 @@ const salvarEdicao = async () => {
     
     fecharEdicao();
     
+    // CORREÇÃO: NÃO CHAMAR carregarListasExistentes() aqui
+    // Isso bagunça a ordenação que já estava correta na interface
+    
   } catch (error) {
-    console.error('Erro completo:', error);
+    console.error('Erro completo ao salvar edição:', error);
     setSnackbarMessage('Erro ao atualizar lista');
     setSnackbarSeverity('error');
     setSnackbarOpen(true);
@@ -694,19 +751,18 @@ const salvarEdicao = async () => {
                       </TableHead>
                       <TableBody>
                         {lista.dataleitorsentinela.map((item: string | DataComLeitor, index) => {
-                  // Extrair data do item (compatível com ambas estruturas)
-                  const data = typeof item === 'string' ? item : item.data;
-                  
-                  // Determinar qual leitor usar (prioridade: leitor do item > leitor da lista)
-                  let leitor = null;
-                  
-                  if (typeof item === 'object' && 'leitor' in item) {
-                    // Nova estrutura: leitor vem dentro do item
-                    leitor = item.leitor;
-                  } else if (lista.leitoriosparte && lista.leitoriosparte[index]) {
-                    // Estrutura antiga: leitor vem do array leitoriosparte
-                    leitor = lista.leitoriosparte[index];
-                  }
+                          console.log(`Renderizando item ${index}:`, item); // DEBUG
+                          
+                          // Extrair data do item
+                          const data = typeof item === 'string' ? item : item.data;
+                          
+                          // CORREÇÃO: Sempre usar leitoriosparte para exibição, pois é o que foi atualizado
+                          let leitor = lista.leitoriosparte && lista.leitoriosparte[index] 
+                            ? lista.leitoriosparte[index] 
+                            : null;
+                          
+                          console.log(`Leitor para item ${index}:`, leitor); // DEBUG
+                          
                           return (
                             <TableRow key={index}> 
                               <TableCell 
