@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // 6. Criar o array de datas com os leitores designados
     const datasComLeitores: DataComLeitor[] = domingos.map((data, index) => ({
       data,
-      leitor: leitoresDistribuidos[index]
+      leitor: leitoresDistribuidos[index] // <-- O leitor aqui já é um objeto Leitor completo
     }));
 
     // 7. Criar objeto leitorlistsentinela
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     const novoLeitorLista = await leitorListSentinelaUtils.create({
       idlistsentina: `lista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       nomemes: `${nomesMeses[mes - 1]} de ${ano}`,
-      dataleitorsentinela: datasComLeitores,
-      leitoriosparte: leitoresSentinela
+      dataleitorsentinela: datasComLeitores, // <-- Salva corretamente
+      leitoriosparte: leitoresSentinela 
     });
 
     return NextResponse.json({
@@ -140,6 +140,8 @@ function calcularDomingosDoMes(mes: number, ano: number): string[] {
 
   return domingos;
 }
+
+
 
 // Função para determinar o próximo leitor da sequência
 function determinarProximoLeitor(leitores: Leitor[], listasAnteriores: LeitorListaSentinela[]): Leitor {

@@ -10,8 +10,8 @@ export async function GET(
     const { id } = await params;
     const idNumerico = parseInt(id);
     
-    const listas = await leitorListSentinelaUtils.findAll();
-    const lista = listas.find(l => l.id === idNumerico);
+    // CORREÇÃO: Usar a nova função findById
+    const lista = await leitorListSentinelaUtils.findById(idNumerico);
 
     if (!lista) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar lista de leitores
+// PUT - Atualizar lista de leitores - VERSÃO CORRIGIDA
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -41,24 +41,16 @@ export async function PUT(
     const body = await request.json();
     const { leitoriosparte } = body;
 
-    // Buscar lista existente
-    const listas = await leitorListSentinelaUtils.findAll();
-    const listaExistente = listas.find(l => l.id === idNumerico);
-
-    if (!listaExistente) {
+    // Validação
+    if (!leitoriosparte || !Array.isArray(leitoriosparte)) {
       return NextResponse.json(
-        { error: 'Lista não encontrada' },
-        { status: 404 }
+        { error: 'Leitores são obrigatórios e devem ser um array' },
+        { status: 400 }
       );
     }
 
-    // Atualizar apenas os leitores
-    await leitorListSentinelaUtils.delete(idNumerico);
-    
-    const listaAtualizada = await leitorListSentinelaUtils.create({
-      idlistsentina: listaExistente.idlistsentina,
-      nomemes: listaExistente.nomemes,
-      dataleitorsentinela: listaExistente.dataleitorsentinela,
+    // CORREÇÃO: Usar a função update em vez de delete + create
+    const listaAtualizada = await leitorListSentinelaUtils.update(idNumerico, {
       leitoriosparte: leitoriosparte
     });
 
@@ -76,7 +68,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir lista de leitores
+// DELETE - Excluir lista de leitores - VERSÃO CORRIGIDA
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -85,7 +77,15 @@ export async function DELETE(
     const { id } = await params;
     const idNumerico = parseInt(id);
     
-    await leitorListSentinelaUtils.delete(idNumerico);
+    // CORREÇÃO: Usar a função delete que retorna boolean
+    const deletado = await leitorListSentinelaUtils.delete(idNumerico);
+
+    if (!deletado) {
+      return NextResponse.json(
+        { error: 'Lista não encontrada' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       message: 'Lista excluída com sucesso!'

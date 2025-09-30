@@ -187,7 +187,7 @@ const LeitoresSentinela: React.FC = () => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       
-      await carregarListasExistentes();
+      await carregarListasExistentes(); // <--- OK! O estado é atualizado após a criação.
       
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -218,10 +218,15 @@ const LeitoresSentinela: React.FC = () => {
       doc.text(lista.nomemes, 105, 25, { align: 'center' });
       
       // Dados da tabela
-      const body = lista.dataleitorsentinela.map((data, index) => [
-        formatarData(data),
-        lista.leitoriosparte[index]?.nome || 'Não atribuído'
-      ]);
+      // CORREÇÃO: O leitor atribuído está dentro de cada objeto de dataleitorsentinela
+      const body = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item) => {
+        // Obter o nome do leitor designado
+        const nomeLeitor = item.leitor?.nome || 'Não atribuído';
+        return [
+          formatarData(item.data), // Passa a data correta
+          nomeLeitor
+        ];
+      });
 
       // FORMA CORRETA - autoTable é uma função separada
       autoTable(doc, {
@@ -297,9 +302,9 @@ const LeitoresSentinela: React.FC = () => {
         doc.setFont('helvetica', 'normal');
       
         // Preparar dados da tabela
-        const tableData = lista.dataleitorsentinela.map((data, idx) => [
-          formatarData(data),
-          lista.leitoriosparte[idx]?.nome || 'NÃO ATRIBUÍDO'
+        const tableData = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item) => [
+          formatarData(item.data),
+          item.leitor?.nome || 'NÃO ATRIBUÍDO'
         ]);
         
         // Adicionar tabela da lista atual
@@ -370,16 +375,16 @@ const LeitoresSentinela: React.FC = () => {
 
   // Funções para edição
   const abrirEdicao = (lista: LeitorListSentinela) => {
-    setListaEditando(lista);
-    
-    // Inicializar o array de leitores editados mantendo a ordem das datas
-    const leitoresIniciais = lista.dataleitorsentinela.map((data, index) => 
-      lista.leitoriosparte[index] || null
-    );
-    
-    setLeitoresEditados(leitoresIniciais);
-    setEditarOpen(true);
-  };
+  setListaEditando(lista);
+  
+  // CORREÇÃO MELHORADA: Inicializar o array de leitores editados 
+  const leitoresIniciais = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map(item =>
+    item.leitor || null
+  );
+  
+  setLeitoresEditados(leitoresIniciais);
+  setEditarOpen(true);
+};
 
   const fecharEdicao = () => {
     setEditarOpen(false);
@@ -387,63 +392,99 @@ const LeitoresSentinela: React.FC = () => {
     setLeitoresEditados([]);
   };
 
-  // função para salvar a edição
-  const salvarEdicao = async () => {
-    if (!listaEditando) return;
+  // função para salvar a edição - VERSÃO CORRIGIDA
+const salvarEdicao = async () => {
+  if (!listaEditando) return;
 
-    try {
-      // Filtrar apenas leitores que foram atribuídos (remover null/undefined)
-      const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
+  try {
+    // Filtrar apenas leitores que foram atribuídos (remover null/undefined)
+    const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
 
-      // Verificar se há nomes repetidos
-      const nomesLeitores = leitoresAtribuidos.map(leitor => leitor.nome);
-      const nomesUnicos = new Set(nomesLeitores);
+    // Verificar se há nomes repetidos
+    const nomesLeitores = leitoresAtribuidos.map(leitor => leitor.nome);
+    const nomesUnicos = new Set(nomesLeitores);
+    
+    if (nomesLeitores.length !== nomesUnicos.size) {
+      // Encontrar nomes repetidos
+      const nomesRepetidos = nomesLeitores.filter((nome, index) => 
+        nomesLeitores.indexOf(nome) !== index
+      );
+      const nomesRepetidosUnicos = [...new Set(nomesRepetidos)];
       
-      if (nomesLeitores.length !== nomesUnicos.size) {
-        // Encontrar nomes repetidos
-        const nomesRepetidos = nomesLeitores.filter((nome, index) => 
-          nomesLeitores.indexOf(nome) !== index
-        );
-        const nomesRepetidosUnicos = [...new Set(nomesRepetidos)];
-        
-        // Mostrar diálogo de confirmação para nomes repetidos
-        const confirmar = window.confirm(
-          `Os seguintes nomes se repetem na lista: ${nomesRepetidosUnicos.join(', ')}\n\nDeseja salvar assim mesmo?`
-        );
-        
-        if (!confirmar) {
-          return; // Abortar se o usuário cancelar
-        }
+      // Mostrar diálogo de confirmação para nomes repetidos
+      const confirmar = window.confirm(
+        `Os seguintes nomes se repetem na lista: ${nomesRepetidosUnicos.join(', ')}\n\nDeseja salvar assim mesmo?`
+      );
+      
+      if (!confirmar) {
+        return; // Abortar se o usuário cancelar
       }
-
-      // Atualizar a lista no banco de dados
-      const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          leitoriosparte: leitoresAtribuidos
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Erro ao atualizar lista');
-      }
-
-      setSnackbarMessage('Lista atualizada com sucesso!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      fecharEdicao();
-      await carregarListasExistentes();
-      
-    } catch (error) {
-      setSnackbarMessage('Erro ao atualizar lista');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
     }
-  };
+
+    // CORREÇÃO CRÍTICA: Atualizar também o dataleitorsentinela
+    const dataleitorsentinelaAtualizado = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => ({
+      ...item,
+      leitor: leitoresEditados[index] || null
+    }));
+
+    console.log('Enviando para atualização:', {
+      listaId: listaEditando.id,
+      leitoresAtribuidos: leitoresAtribuidos,
+      dataleitorsentinela: dataleitorsentinelaAtualizado
+    });
+
+    // Atualizar a lista no banco de dados com AMBOS os arrays
+    const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        leitoriosparte: leitoresAtribuidos,
+        dataleitorsentinela: dataleitorsentinelaAtualizado // CORREÇÃO: enviar também
+      }),
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('Erro na resposta:', errorText);
+      throw new Error('Erro ao atualizar lista');
+    }
+
+    const result = await updateResponse.json();
+    console.log('Resposta do backend:', result);
+    
+    const listaAtualizadaDoBackend: LeitorListSentinela = result.leitorLista;
+    
+    // CORREÇÃO: Atualização mais robusta do estado
+    setListasExistentes(prevLists => {
+      const novasListas = prevLists.map(lista => 
+        lista.id === listaAtualizadaDoBackend.id 
+          ? { 
+              ...listaAtualizadaDoBackend,
+              // Garantir que as datas sejam mantidas no formato correto
+              dataleitorsentinela: listaAtualizadaDoBackend.dataleitorsentinela as unknown as DataComLeitor[]
+            }
+          : lista
+      );
+      
+      // Ordenação
+      return novasListas.sort((a, b) => 
+        new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()
+      );
+    });
+
+    setSnackbarMessage('Lista atualizada com sucesso!');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+    
+    fecharEdicao();
+    
+  } catch (error) {
+    console.error('Erro completo:', error);
+    setSnackbarMessage('Erro ao atualizar lista');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  }
+};
 
   // Funções para exclusão
   const abrirExclusao = (lista: LeitorListSentinela) => {
@@ -485,6 +526,7 @@ const LeitoresSentinela: React.FC = () => {
   const toggleLeitor = (leitor: Objeto) => {
     setLeitoresEditados(prev => {
       const existe = prev.find(l => l.id === leitor.id);
+      console.log(existe);
       if (existe) {
         return prev.filter(l => l.id !== leitor.id);
       } else {
