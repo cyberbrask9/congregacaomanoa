@@ -41,15 +41,6 @@ export async function PUT(
     const body = await request.json();
     const { leitoriosparte, dataleitorsentinela } = body;
 
-// DEBUG: Verificar o que está chegando do frontend
-    console.log('=== BACKEND PUT - DADOS RECEBIDOS ===');
-    console.log('ID da lista:', idNumerico);
-    console.log('leitoriosparte recebido:', leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })));
-    console.log('dataleitorsentinela recebido:', dataleitorsentinela?.map((item: any) => ({
-      data: item.data,
-      leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
-    })));
-
     // Validação
     if (!leitoriosparte || !Array.isArray(leitoriosparte)) {
       return NextResponse.json(
@@ -69,17 +60,6 @@ export async function PUT(
       );
     }
 
-    // DEBUG: Verificar lista antes da atualização
-    console.log('=== BACKEND - LISTA ANTES DA ATUALIZAÇÃO ===');
-    console.log('Lista existente:', {
-      id: listaExistente.id,
-      leitoriosparte: listaExistente.leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })),
-      dataleitorsentinela: listaExistente.dataleitorsentinela?.map((item: any) => ({
-        data: item.data,
-        leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
-      }))
-    });
-
     // CORREÇÃO: Atualizar ambos os campos
     const updateData: any = {
       leitoriosparte: leitoriosparte
@@ -90,21 +70,7 @@ export async function PUT(
       updateData.dataleitorsentinela = dataleitorsentinela;
     }
 
-    console.log('=== BACKEND - DADOS PARA ATUALIZAÇÃO ===');
-    console.log('Update data:', updateData);
-
     const listaAtualizada = await leitorListSentinelaUtils.update(idNumerico, updateData);
-
-    // DEBUG: Verificar lista após atualização
-    console.log('=== BACKEND - LISTA APÓS ATUALIZAÇÃO ===');
-    console.log('Lista atualizada:', {
-      id: listaAtualizada.id,
-      leitoriosparte: listaAtualizada.leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })),
-      dataleitorsentinela: listaAtualizada.dataleitorsentinela?.map((item: any) => ({
-        data: item.data,
-        leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
-      }))
-    });
 
     return NextResponse.json({
       message: 'Lista atualizada com sucesso!',

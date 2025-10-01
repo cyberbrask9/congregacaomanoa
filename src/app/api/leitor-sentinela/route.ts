@@ -73,16 +73,19 @@ export async function POST(request: NextRequest) {
 
     // 7. Criar objeto leitorlistsentinela
     const nomesMeses = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
-    const novoLeitorLista = await leitorListSentinelaUtils.create({
-      idlistsentina: `lista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      nomemes: `${nomesMeses[mes - 1]} de ${ano}`,
-      dataleitorsentinela: datasComLeitores, // <-- Salva corretamente
-      leitoriosparte: leitoresSentinela 
-    });
+// CORREÇÃO: Salvar apenas os leitores designados, não todos os disponíveis
+const leitoresDesignados = leitoresDistribuidos; // Já contém apenas os leitores designados para os domingos
+
+const novoLeitorLista = await leitorListSentinelaUtils.create({
+  idlistsentina: `lista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  nomemes: `${nomesMeses[mes - 1]} de ${ano}`,
+  dataleitorsentinela: datasComLeitores,
+  leitoriosparte: leitoresDesignados // <-- CORREÇÃO: Apenas leitores designados
+});
 
     return NextResponse.json({
       message: 'Lista de leitores criada com sucesso!',
@@ -161,7 +164,7 @@ function determinarProximoLeitor(leitores: Leitor[], listasAnteriores: LeitorLis
   });
 
   // Encontrar a lista mais recente que tem leitores designados
-  const listaMaisRecenteComLeitores = listasOrdenadas.find(lista => 
+ const listaMaisRecenteComLeitores = listasOrdenadas.find(lista => 
     lista.dataleitorsentinela && 
     Array.isArray(lista.dataleitorsentinela) && 
     lista.dataleitorsentinela.length > 0
@@ -171,31 +174,39 @@ function determinarProximoLeitor(leitores: Leitor[], listasAnteriores: LeitorLis
     return leitores[0];
   }
 
-  // Extrair o último leitor da lista mais recente
-  const ultimoLeitorDesignado = listaMaisRecenteComLeitores.dataleitorsentinela[
-    listaMaisRecenteComLeitores.dataleitorsentinela.length - 1
-  ]?.leitor;
+  // EXTRAIR TODOS OS LEITORES JÁ USADOS na lista mais recente
+  const leitoresUsadosNaListaRecente = (listaMaisRecenteComLeitores.dataleitorsentinela as unknown as DataComLeitor[])
+    .map(item => item.leitor)
+    .filter(leitor => leitor !== null && leitor !== undefined);
+  if (leitoresUsadosNaListaRecente.length === 0) {
+    return leitores[0];
+  }
 
-  if (!ultimoLeitorDesignado) {
+  // Encontrar o ÚLTIMO leitor usado na lista mais recente
+  const ultimoLeitorUsado = leitoresUsadosNaListaRecente[leitoresUsadosNaListaRecente.length - 1];
+  
+  if (!ultimoLeitorUsado) {
     return leitores[0];
   }
 
   // Encontrar o índice do último leitor na lista atual de leitores
   const ultimoIndex = leitores.findIndex(leitor => 
-    leitor.id === ultimoLeitorDesignado.id || 
-    leitor.nome === ultimoLeitorDesignado.nome
+    leitor.id === ultimoLeitorUsado.id
   );
   
   if (ultimoIndex === -1) {
-    return leitores[0]; // Se o último leitor não existe mais, começa do primeiro
+    // Se o último leitor não existe mais, começa do primeiro disponível
+    return leitores[0];
   }
 
   // Determinar o próximo leitor (se chegou ao final, volta para o primeiro)
   const proximoIndex = (ultimoIndex + 1) % leitores.length;
-  return leitores[proximoIndex];
+  const proximoLeitor = leitores[proximoIndex];
+ 
+  return proximoLeitor;
 }
 
-// Função para distribuir leitores sequencialmente
+// Função para distribuir leitores sequencialmente - VERSÃO CORRIGIDA
 function distribuirLeitoresSequencialmente(
   leitores: Leitor[], 
   quantidadeDomingos: number, 
@@ -207,8 +218,7 @@ function distribuirLeitoresSequencialmente(
   
   // Encontrar o índice do leitor inicial
   let currentIndex = leitores.findIndex(leitor => 
-    leitor.id === leitorInicial.id || 
-    leitor.nome === leitorInicial.nome
+    leitor.id === leitorInicial.id
   );
   
   if (currentIndex === -1) {
@@ -217,7 +227,10 @@ function distribuirLeitoresSequencialmente(
   
   // Distribuir leitores sequencialmente
   for (let i = 0; i < quantidadeDomingos; i++) {
-    resultado.push(leitores[currentIndex]);
+    const leitorAtual = leitores[currentIndex];
+    resultado.push(leitorAtual);
+        
+    // Avançar para o próximo leitor (circular)
     currentIndex = (currentIndex + 1) % leitores.length;
   }
   

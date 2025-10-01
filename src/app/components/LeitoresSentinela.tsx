@@ -130,15 +130,12 @@ const LeitoresSentinela: React.FC = () => {
 
   useEffect(() => {
   if (editarOpen && listaEditando) {
-    console.log('🚀 Dialog abriu, sincronizando leitores...');
-    
+        
     // Forçar uma nova cópia dos leitores
     const leitoresAtualizados = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map(item => 
       item.leitor || null
     );
-    
-    console.log('🔄 Leitores sincronizados:', leitoresAtualizados);
-    setLeitoresEditados(leitoresAtualizados);
+        setLeitoresEditados(leitoresAtualizados);
   }
 }, [editarOpen, listaEditando]);
 
@@ -169,8 +166,6 @@ const LeitoresSentinela: React.FC = () => {
       if (response.ok) {
         const listas: LeitorListSentinela[] = await response.json();
         
-        console.log('Listas carregadas da API:', listas);
-
         // CORREÇÃO: Garantir desserialização adequada
         const listasComArraysCorretos = listas.map(lista => ({
           ...lista,
@@ -183,8 +178,6 @@ const LeitoresSentinela: React.FC = () => {
             : JSON.parse(lista.leitoriosparte as unknown as string)
         }));
 
-        console.log('Listas com arrays desserializados:', listasComArraysCorretos);
-        
         // Ordenar por data (mais antigo primeiro)
         const listasOrdenadas = listasComArraysCorretos.sort((a, b) => {
           const extrairData = (nomemes: string) => {
@@ -212,15 +205,12 @@ const LeitoresSentinela: React.FC = () => {
   
 // Adicione no início do componente, após os estados
 useEffect(() => {
-  console.log('🔄 listasExistentes ATUALIZADO:', listasExistentes);
 }, [listasExistentes]);
 
 useEffect(() => {
-  console.log('📝 listaEditando ATUALIZADO:', listaEditando);
 }, [listaEditando]);
 
 useEffect(() => {
-  console.log('👥 leitoresEditados ATUALIZADO:', leitoresEditados);
 }, [leitoresEditados]);
 
 
@@ -292,28 +282,18 @@ useEffect(() => {
     doc.setFontSize(16);
     doc.text('Leitores da Sentinela', 105, 15, { align: 'center' });
     doc.text(lista.nomemes, 105, 25, { align: 'center' });
-    
-    // DEBUG: Verificar os dados antes de gerar o PDF
-    console.log('=== EXPORTANDO PDF ===');
-    console.log('Lista completa:', lista);
-    console.log('dataleitorsentinela:', lista.dataleitorsentinela);
-    console.log('leitoriosparte:', lista.leitoriosparte);
-    
+        
     // Dados da tabela - CORREÇÃO APLICADA
     const body = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
       // CORREÇÃO: Usar leitoriosparte[index] em vez de item.leitor
       const leitor = lista.leitoriosparte && lista.leitoriosparte[index];
       const nomeLeitor = leitor?.nome || 'Não atribuído';
-      
-      console.log(`Data ${index}:`, item.data, 'Leitor:', nomeLeitor);
-      
+            
       return [
         formatarData(item.data), // Passa a data correta
         nomeLeitor
       ];
     });
-
-    console.log('Body do PDF:', body);
 
     // FORMA CORRETA - autoTable é uma função separada
     autoTable(doc, {
@@ -469,7 +449,6 @@ useEffect(() => {
   // Funções para edição
   // Funções para edição - VERSÃO CORRIGIDA
 const abrirEdicao = (listaId: number) => {
-  console.log('🎯 ABRINDO EDIÇÃO para lista ID:', listaId);
   
   // BUSCAR DIRETAMENTE DO ESTADO - versão mais agressiva
   const listaAtualizada = listasExistentes.find(l => l.id === listaId);
@@ -478,21 +457,11 @@ const abrirEdicao = (listaId: number) => {
     console.error('❌ Lista não encontrada no estado');
     return;
   }
-
-  console.log('📋 Lista encontrada no estado:', {
-    id: listaAtualizada.id,
-    nomemes: listaAtualizada.nomemes,
-    dataleitorsentinela: listaAtualizada.dataleitorsentinela,
-    leitoriosparte: listaAtualizada.leitoriosparte
-  });
-
+  
   // CORREÇÃO: Garantir que estamos usando dataleitorsentinela
   const leitoresIniciais = (listaAtualizada.dataleitorsentinela as unknown as DataComLeitor[]).map(item => {
-    console.log('📅 Item dataleitorsentinela:', item);
     return item.leitor || null;
   });
-
-  console.log('👥 Leitores iniciais calculados:', leitoresIniciais);
 
   // ATUALIZAR ESTADOS SINCRONAMENTE
   setListaEditando(listaAtualizada);
@@ -511,9 +480,6 @@ const salvarEdicao = async () => {
   if (!listaEditando) return;
 
   try {
-    console.log('=== INICIANDO SALVAR EDIÇÃO ===');
-    console.log('Leitores editados:', leitoresEditados);
-
     // Filtrar apenas leitores que foram atribuídos
     const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
 
@@ -539,23 +505,17 @@ const salvarEdicao = async () => {
     // CORREÇÃO CRÍTICA: Atualizar dataleitorsentinela mantendo a estrutura correta
     const dataleitorsentinelaAtualizado = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
       const leitorAtual = leitoresEditados[index];
-      console.log(`Atualizando data ${item.data}: ${item.leitor?.nome} → ${leitorAtual?.nome}`);
       return {
         data: item.data,
         leitor: leitorAtual || null // CORREÇÃO: Usar o leitor editado
       };
     });
 
-    console.log('Dataleitorsentinela atualizado:', dataleitorsentinelaAtualizado);
-    console.log('Leitoriosparte atualizado:', leitoresAtribuidos);
-
     // Enviar ambos os arrays atualizados
     const dadosParaAtualizar = {
       leitoriosparte: leitoresAtribuidos,
       dataleitorsentinela: dataleitorsentinelaAtualizado
     };
-
-    console.log('📤 Enviando para API:', dadosParaAtualizar);
 
     // Atualizar a lista no banco de dados
     const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
@@ -570,22 +530,14 @@ const salvarEdicao = async () => {
       throw new Error('Erro ao atualizar lista');
     }
 
-    const result = await updateResponse.json();
-    console.log('Resposta do backend:', result);
-    
+    const result = await updateResponse.json();    
     const listaAtualizadaDoBackend: LeitorListSentinela = result.leitorLista;
-    console.log('Lista atualizada do backend:', listaAtualizadaDoBackend);
 
     // CORREÇÃO CRÍTICA: Atualizar o estado local MANTENDO a ordenação atual
     setListasExistentes(prevLists => {
   const novasListas = prevLists.map(lista => {
     if (lista.id === listaAtualizadaDoBackend.id) {
-      console.log('🔄 Atualizando lista no estado local com dados CORRETOS');
-      
-      // VERIFICAR se os dados do backend estão corretos
-      console.log('📊 Dados do backend - dataleitorsentinela:', listaAtualizadaDoBackend.dataleitorsentinela);
-      console.log('📊 Dados do backend - leitoriosparte:', listaAtualizadaDoBackend.leitoriosparte);
-      
+            
       return {
         ...listaAtualizadaDoBackend
       };
@@ -653,7 +605,6 @@ const salvarEdicao = async () => {
   const toggleLeitor = (leitor: Objeto) => {
     setLeitoresEditados(prev => {
       const existe = prev.find(l => l.id === leitor.id);
-      console.log(existe);
       if (existe) {
         return prev.filter(l => l.id !== leitor.id);
       } else {
@@ -787,8 +738,7 @@ const salvarEdicao = async () => {
                       <IconButton 
                         color="primary" 
                         onClick={() => {
-                          console.log('✏️ Clicou editar lista:', lista.id, lista.nomemes);
-                          abrirEdicao(lista.id);
+                        abrirEdicao(lista.id);
                         }}
                         sx={{ mr: 1 }}
                       >
@@ -823,19 +773,14 @@ const salvarEdicao = async () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {lista.dataleitorsentinela.map((item: string | DataComLeitor, index) => {
-                          console.log(`Renderizando item ${index}:`, item); // DEBUG
-                          
+                        {lista.dataleitorsentinela.map((item: string | DataComLeitor, index) => {                          
                           // Extrair data do item
                           const data = typeof item === 'string' ? item : item.data;
                           
                           // CORREÇÃO: Sempre usar leitoriosparte para exibição, pois é o que foi atualizado
                           let leitor = lista.leitoriosparte && lista.leitoriosparte[index] 
                             ? lista.leitoriosparte[index] 
-                            : null;
-                          
-                          console.log(`Leitor para item ${index}:`, leitor); // DEBUG
-                          
+                            : null;                          
                           return (
                             <TableRow key={index}> 
                               <TableCell 
