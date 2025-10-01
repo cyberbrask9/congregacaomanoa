@@ -39,7 +39,16 @@ export async function PUT(
     const { id } = await params;
     const idNumerico = parseInt(id);
     const body = await request.json();
-    const { leitoriosparte } = body;
+    const { leitoriosparte, dataleitorsentinela } = body;
+
+// DEBUG: Verificar o que está chegando do frontend
+    console.log('=== BACKEND PUT - DADOS RECEBIDOS ===');
+    console.log('ID da lista:', idNumerico);
+    console.log('leitoriosparte recebido:', leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })));
+    console.log('dataleitorsentinela recebido:', dataleitorsentinela?.map((item: any) => ({
+      data: item.data,
+      leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
+    })));
 
     // Validação
     if (!leitoriosparte || !Array.isArray(leitoriosparte)) {
@@ -49,9 +58,52 @@ export async function PUT(
       );
     }
 
-    // CORREÇÃO: Usar a função update em vez de delete + create
-    const listaAtualizada = await leitorListSentinelaUtils.update(idNumerico, {
+     // Buscar lista existente
+    const listas = await leitorListSentinelaUtils.findAll();
+    const listaExistente = listas.find(l => l.id === idNumerico);
+
+    if (!listaExistente) {
+      return NextResponse.json(
+        { error: 'Lista não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // DEBUG: Verificar lista antes da atualização
+    console.log('=== BACKEND - LISTA ANTES DA ATUALIZAÇÃO ===');
+    console.log('Lista existente:', {
+      id: listaExistente.id,
+      leitoriosparte: listaExistente.leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })),
+      dataleitorsentinela: listaExistente.dataleitorsentinela?.map((item: any) => ({
+        data: item.data,
+        leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
+      }))
+    });
+
+    // CORREÇÃO: Atualizar ambos os campos
+    const updateData: any = {
       leitoriosparte: leitoriosparte
+    };
+
+    // Se dataleitorsentinela foi enviado, atualizar também
+    if (dataleitorsentinela && Array.isArray(dataleitorsentinela)) {
+      updateData.dataleitorsentinela = dataleitorsentinela;
+    }
+
+    console.log('=== BACKEND - DADOS PARA ATUALIZAÇÃO ===');
+    console.log('Update data:', updateData);
+
+    const listaAtualizada = await leitorListSentinelaUtils.update(idNumerico, updateData);
+
+    // DEBUG: Verificar lista após atualização
+    console.log('=== BACKEND - LISTA APÓS ATUALIZAÇÃO ===');
+    console.log('Lista atualizada:', {
+      id: listaAtualizada.id,
+      leitoriosparte: listaAtualizada.leitoriosparte?.map((l: any) => ({ id: l.id, nome: l.nome })),
+      dataleitorsentinela: listaAtualizada.dataleitorsentinela?.map((item: any) => ({
+        data: item.data,
+        leitor: item.leitor ? { id: item.leitor.id, nome: item.leitor.nome } : null
+      }))
     });
 
     return NextResponse.json({

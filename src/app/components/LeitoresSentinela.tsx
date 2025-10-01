@@ -129,6 +129,20 @@ const LeitoresSentinela: React.FC = () => {
   }, []);
 
   useEffect(() => {
+  if (editarOpen && listaEditando) {
+    console.log('🚀 Dialog abriu, sincronizando leitores...');
+    
+    // Forçar uma nova cópia dos leitores
+    const leitoresAtualizados = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map(item => 
+      item.leitor || null
+    );
+    
+    console.log('🔄 Leitores sincronizados:', leitoresAtualizados);
+    setLeitoresEditados(leitoresAtualizados);
+  }
+}, [editarOpen, listaEditando]);
+
+  useEffect(() => {
     const buscarLeitores = async () => {
       try {
         const response = await fetch('/api/objetos');
@@ -195,10 +209,21 @@ const LeitoresSentinela: React.FC = () => {
       console.error('Erro ao carregar listas:', error);
     }
   };
-  //debug e controle de mudança de estado
-  useEffect(() => {
-  console.log('Estado listasExistentes atualizado:', listasExistentes);
+  
+// Adicione no início do componente, após os estados
+useEffect(() => {
+  console.log('🔄 listasExistentes ATUALIZADO:', listasExistentes);
 }, [listasExistentes]);
+
+useEffect(() => {
+  console.log('📝 listaEditando ATUALIZADO:', listaEditando);
+}, [listaEditando]);
+
+useEffect(() => {
+  console.log('👥 leitoresEditados ATUALIZADO:', leitoresEditados);
+}, [leitoresEditados]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -442,22 +467,35 @@ const LeitoresSentinela: React.FC = () => {
 };
 
   // Funções para edição
-  const abrirEdicao = (lista: LeitorListSentinela) => {
-  console.log('Abrindo edição - Lista original:', {
-    id: lista.id,
-    dataleitorsentinela: lista.dataleitorsentinela,
-    leitoriosparte: lista.leitoriosparte
+  // Funções para edição - VERSÃO CORRIGIDA
+const abrirEdicao = (listaId: number) => {
+  console.log('🎯 ABRINDO EDIÇÃO para lista ID:', listaId);
+  
+  // BUSCAR DIRETAMENTE DO ESTADO - versão mais agressiva
+  const listaAtualizada = listasExistentes.find(l => l.id === listaId);
+  
+  if (!listaAtualizada) {
+    console.error('❌ Lista não encontrada no estado');
+    return;
+  }
+
+  console.log('📋 Lista encontrada no estado:', {
+    id: listaAtualizada.id,
+    nomemes: listaAtualizada.nomemes,
+    dataleitorsentinela: listaAtualizada.dataleitorsentinela,
+    leitoriosparte: listaAtualizada.leitoriosparte
   });
 
-  setListaEditando(lista);
-  
-  // CORREÇÃO: Garantir que estamos usando a estrutura correta
-  // O leitor designado está em dataleitorsentinela[index].leitor
-  const leitoresIniciais = (lista.dataleitorsentinela as unknown as DataComLeitor[]).map(item => 
-    item.leitor || null
-  );
-  
-  console.log('Leitores iniciais para edição:', leitoresIniciais);
+  // CORREÇÃO: Garantir que estamos usando dataleitorsentinela
+  const leitoresIniciais = (listaAtualizada.dataleitorsentinela as unknown as DataComLeitor[]).map(item => {
+    console.log('📅 Item dataleitorsentinela:', item);
+    return item.leitor || null;
+  });
+
+  console.log('👥 Leitores iniciais calculados:', leitoresIniciais);
+
+  // ATUALIZAR ESTADOS SINCRONAMENTE
+  setListaEditando(listaAtualizada);
   setLeitoresEditados(leitoresIniciais);
   setEditarOpen(true);
 };
@@ -474,13 +512,10 @@ const salvarEdicao = async () => {
 
   try {
     console.log('=== INICIANDO SALVAR EDIÇÃO ===');
-    console.log('Lista editando:', listaEditando);
     console.log('Leitores editados:', leitoresEditados);
 
-    // Filtrar apenas leitores que foram atribuídos (remover null/undefined)
+    // Filtrar apenas leitores que foram atribuídos
     const leitoresAtribuidos = leitoresEditados.filter(leitor => leitor !== null && leitor !== undefined);
-
-    console.log('Leitores atribuídos filtrados:', leitoresAtribuidos);
 
     // Verificar se há nomes repetidos
     const nomesLeitores = leitoresAtribuidos.map(leitor => leitor.nome);
@@ -504,21 +539,23 @@ const salvarEdicao = async () => {
     // CORREÇÃO CRÍTICA: Atualizar dataleitorsentinela mantendo a estrutura correta
     const dataleitorsentinelaAtualizado = (listaEditando.dataleitorsentinela as unknown as DataComLeitor[]).map((item, index) => {
       const leitorAtual = leitoresEditados[index];
+      console.log(`Atualizando data ${item.data}: ${item.leitor?.nome} → ${leitorAtual?.nome}`);
       return {
-        data: item.data, // Manter a data original
-        leitor: leitorAtual || null // Atualizar o leitor
+        data: item.data,
+        leitor: leitorAtual || null // CORREÇÃO: Usar o leitor editado
       };
     });
 
     console.log('Dataleitorsentinela atualizado:', dataleitorsentinelaAtualizado);
+    console.log('Leitoriosparte atualizado:', leitoresAtribuidos);
 
-    // Preparar dados para enviar
+    // Enviar ambos os arrays atualizados
     const dadosParaAtualizar = {
       leitoriosparte: leitoresAtribuidos,
       dataleitorsentinela: dataleitorsentinelaAtualizado
     };
 
-    console.log('Enviando para API:', dadosParaAtualizar);
+    console.log('📤 Enviando para API:', dadosParaAtualizar);
 
     // Atualizar a lista no banco de dados
     const updateResponse = await fetch(`/api/leitor-sentinela/${listaEditando.id}`, {
@@ -541,22 +578,23 @@ const salvarEdicao = async () => {
 
     // CORREÇÃO CRÍTICA: Atualizar o estado local MANTENDO a ordenação atual
     setListasExistentes(prevLists => {
-      const novasListas = prevLists.map(lista => {
-        if (lista.id === listaAtualizadaDoBackend.id) {
-          console.log('Atualizando lista no estado local:', listaAtualizadaDoBackend);
-          return {
-            ...listaAtualizadaDoBackend
-          };
-        }
-        return lista;
-      });
+  const novasListas = prevLists.map(lista => {
+    if (lista.id === listaAtualizadaDoBackend.id) {
+      console.log('🔄 Atualizando lista no estado local com dados CORRETOS');
       
-      console.log('Novas listas após atualização:', novasListas);
+      // VERIFICAR se os dados do backend estão corretos
+      console.log('📊 Dados do backend - dataleitorsentinela:', listaAtualizadaDoBackend.dataleitorsentinela);
+      console.log('📊 Dados do backend - leitoriosparte:', listaAtualizadaDoBackend.leitoriosparte);
       
-      // CORREÇÃO: MANTER A MESMA ORDENAÇÃO que já estava na interface
-      // Não reordenar, apenas manter a ordem atual
-      return novasListas;
-    });
+      return {
+        ...listaAtualizadaDoBackend
+      };
+    }
+    return lista;
+  });
+  
+  return novasListas;
+});
 
     setSnackbarMessage('Lista atualizada com sucesso!');
     setSnackbarSeverity('success');
@@ -748,7 +786,10 @@ const salvarEdicao = async () => {
                       {/* Botões Editar e Excluir */}
                       <IconButton 
                         color="primary" 
-                        onClick={() => abrirEdicao(lista)}
+                        onClick={() => {
+                          console.log('✏️ Clicou editar lista:', lista.id, lista.nomemes);
+                          abrirEdicao(lista.id);
+                        }}
                         sx={{ mr: 1 }}
                       >
                         <EditIcon />
