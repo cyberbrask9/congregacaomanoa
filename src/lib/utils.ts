@@ -266,3 +266,156 @@ export const leitorListSentinelaUtils = {
     }
   }
 };
+
+// Funções ao seu leitorListSentinelaUtils ou crie um novo objeto:
+
+export const audioVideoUtils = {
+  // Criar nova lista de áudio e vídeo
+  create: async (audioVideoData: Omit<AudioVideoLista, 'id' | 'dataCriacao'>): Promise<AudioVideoLista> => {
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO audioVideoLista (idlistaav, nomemes, dataav, pessoaparte)
+        VALUES (?, ?, ?, ?)
+      `);
+      
+      const result = stmt.run(
+        audioVideoData.idlistaav,
+        audioVideoData.nomemes,
+        JSON.stringify(audioVideoData.dataav || []),
+        JSON.stringify(audioVideoData.pessoaparte || [])
+      );
+
+      const newObj = db.prepare('SELECT * FROM audioVideoLista WHERE id = ?').get(result.lastInsertRowid) as DatabaseRow;
+      
+      if (!newObj) {
+        throw new Error('Falha ao criar lista de áudio e vídeo');
+      }
+
+      return {
+        id: newObj.id as number,
+        idlistaav: newObj.idlistaav as string,
+        nomemes: newObj.nomemes as string,
+        dataav: JSON.parse(newObj.dataav as string) as DataComPessoaAV[],
+        pessoaparte: JSON.parse(newObj.pessoaparte as string) as Objeto[],
+        dataCriacao: new Date(newObj.dataCriacao as string)
+      } as AudioVideoLista;
+    } catch (error) {
+      console.error('Erro ao criar lista de áudio e vídeo:', error);
+      throw error;
+    }
+  },
+
+  // Listar todas as listas de áudio e vídeo
+  findAll: async (): Promise<AudioVideoLista[]> => {
+    try {
+      const stmt = db.prepare('SELECT * FROM audioVideoLista ORDER BY dataCriacao DESC');
+      const audioVideos = stmt.all() as DatabaseRow[];
+      
+      return audioVideos.map(item => ({
+        id: item.id as number,
+        idlistaav: item.idlistaav as string,
+        nomemes: item.nomemes as string,
+        dataav: JSON.parse(item.dataav as string) as DataComPessoaAV[],
+        pessoaparte: JSON.parse(item.pessoaparte as string) as Objeto[],
+        dataCriacao: new Date(item.dataCriacao as string)
+      })) as AudioVideoLista[];
+    } catch (error) {
+      console.error('Erro ao buscar listas de áudio e vídeo:', error);
+      return [];
+    }
+  },
+
+  // Encontrar por ID
+  findById: async (id: number): Promise<AudioVideoLista | undefined> => {
+    try {
+      const stmt = db.prepare('SELECT * FROM audioVideoLista WHERE id = ?');
+      const audioVideo = stmt.get(id) as DatabaseRow;
+      
+      if (!audioVideo) return undefined;
+      
+      return {
+        id: audioVideo.id as number,
+        idlistaav: audioVideo.idlistaav as string,
+        nomemes: audioVideo.nomemes as string,
+        dataav: JSON.parse(audioVideo.dataav as string) as DataComPessoaAV[],
+        pessoaparte: JSON.parse(audioVideo.pessoaparte as string) as Objeto[],
+        dataCriacao: new Date(audioVideo.dataCriacao as string)
+      } as AudioVideoLista;
+    } catch (error) {
+      console.error('Erro ao buscar lista de áudio e vídeo por ID:', error);
+      return undefined;
+    }
+  },
+
+  // Atualizar lista
+  update: async (id: number, audioVideoData: Partial<AudioVideoLista>): Promise<AudioVideoLista> => {
+    try {
+      const fields = [];
+      const values = [];
+      
+      if (audioVideoData.nomemes !== undefined) {
+        fields.push('nomemes = ?');
+        values.push(audioVideoData.nomemes);
+      }
+      if (audioVideoData.dataav !== undefined) {
+        fields.push('dataav = ?');
+        values.push(JSON.stringify(audioVideoData.dataav));
+      }
+      if (audioVideoData.pessoaparte !== undefined) {
+        fields.push('pessoaparte = ?');
+        values.push(JSON.stringify(audioVideoData.pessoaparte));
+      }
+      if (audioVideoData.idlistaav !== undefined) {
+        fields.push('idlistaav = ?');
+        values.push(audioVideoData.idlistaav);
+      }
+
+      if (fields.length === 0) {
+        throw new Error('Nenhum campo fornecido para atualização');
+      }
+
+      const stmt = db.prepare(`
+        UPDATE audioVideoLista 
+        SET ${fields.join(', ')} 
+        WHERE id = ?
+      `);
+      
+      const result = stmt.run(...values, id);
+
+      if (result.changes === 0) {
+        throw new Error('Lista não encontrada para atualização');
+      }
+
+      const updatedObj = db.prepare('SELECT * FROM audioVideoLista WHERE id = ?').get(id) as DatabaseRow;
+      
+      if (!updatedObj) {
+        throw new Error('Falha ao recuperar lista atualizada');
+      }
+
+      return {
+        id: updatedObj.id as number,
+        idlistaav: updatedObj.idlistaav as string,
+        nomemes: updatedObj.nomemes as string,
+        dataav: JSON.parse(updatedObj.dataav as string) as DataComPessoaAV[],
+        pessoaparte: JSON.parse(updatedObj.pessoaparte as string) as Objeto[],
+        dataCriacao: new Date(updatedObj.dataCriacao as string)
+      } as AudioVideoLista;
+    } catch (error) {
+      console.error('Erro ao atualizar lista de áudio e vídeo:', error);
+      throw error;
+    }
+  },
+
+  // Deletar lista
+  delete: async (id: number): Promise<boolean> => {
+    try {
+      const stmt = db.prepare('DELETE FROM audioVideoLista WHERE id = ?');
+      const result = stmt.run(id);
+      
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Erro ao deletar lista de áudio e vídeo:', error);
+      throw error;
+    }
+  }
+};

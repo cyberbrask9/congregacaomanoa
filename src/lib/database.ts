@@ -96,6 +96,20 @@ db.exec(`
   )
 `);
 
+
+// Criar tabela de audio e video
+db.exec(`
+  CREATE TABLE IF NOT EXISTS audioVideoLista (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  idlistaav TEXT UNIQUE NOT NULL,
+  nomemes TEXT NOT NULL,
+  dataav TEXT NOT NULL, -- JSON array de datas
+  pessoaparte TEXT NOT NULL, -- JSON array de objetos
+  dataCriacao DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+
 // Funções para leitores - CORRIGIDA (sem any)
 export function getLeitorsByMesAno(mesAno: string): Leitor[] {
   try {
@@ -114,6 +128,8 @@ export function getLeitorsByMesAno(mesAno: string): Leitor[] {
     return [];
   }
 }
+
+
 
 // Funções para projetos (Corrigida)
 export function getAllProjetos(): ProjetoComBoolean[] {

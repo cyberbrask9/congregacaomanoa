@@ -196,3 +196,62 @@ export const leitorSentinelaService = {
   }
 };
 // fim leitor a sentinela
+
+// Chamada para lista audio e video
+export const audioVideoService = {
+  // Criar nova lista de áudio e vídeo
+  criarListaAudioVideo: async (mes: number, ano: number) => {
+    try {
+      const response = await api.post('/audio-video', { mes, ano });
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Listar todas as listas
+  listarListasAudioVideo: async () => {
+    try {
+      const response = await api.get('/audio-video');
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Buscar lista específica
+  buscarListaAudioVideo: async (id: number) => {
+    try {
+      const response = await api.get(`/audio-video/${id}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Atualizar lista
+  atualizarListaAudioVideo: async (id: number, dados: { pessoaparte: Objeto[]; dataav?: DataComPessoaAV[] }) => {
+    try {
+      const response = await api.put(`/audio-video/${id}`, dados);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Excluir lista
+  excluirListaAudioVideo: async (id: number) => {
+    try {
+      const response = await api.delete(`/audio-video/${id}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      throw new Error(errorMessage);
+    }
+  }
+};
+// Fim lista audio e video

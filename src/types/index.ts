@@ -48,3 +48,18 @@ export interface LeitorListaSentinela {
   leitoriosparte: Leitor[];
   dataCriacao: Date;
 }
+
+// interface para lista audio e video
+export interface DataComPessoaAV {
+  data: string;
+  pessoa: Objeto | null;
+}
+
+export interface AudioVideoLista {
+  id: number;
+  idlistaav: string;
+  nomemes: string;
+  dataav: DataComPessoaAV[];
+  pessoaparte: Objeto[];
+  dataCriacao: Date;
+}

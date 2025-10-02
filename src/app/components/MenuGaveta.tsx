@@ -22,7 +22,7 @@ import ListaObjetos from './ListaObjetos';
 import LoginIcon from './LoginIcon';
 import PageTerritorioList from './PageTerritorioList';
 import LeitoresSentinela from './LeitoresSentinela';
-
+import AudioVideo from './AudioVideo';
 
 const drawerWidth = 240;
 
@@ -105,8 +105,8 @@ export default function MenuGaveta() {
         return <div>Opção 2 - Componente em desenvolvimento</div>;
       case 'territorio':
         return <PageTerritorioList />;
-      case 'teste2':
-        return <div>Teste 2 - Componente em desenvolvimento</div>;
+      case 'audiovideo':
+        return <AudioVideo />;
       default:
         return <ListaObjetos />;
     }
@@ -203,11 +203,11 @@ export default function MenuGaveta() {
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
-            <ListItemButton onClick={() => handleMenuClick('territorio')}>
+            <ListItemButton onClick={() => handleMenuClick('audiovideo')}>
               <ListItemIcon>
                 <Article />
               </ListItemIcon>
-              <ListItemText primary="Teste2" />
+              <ListItemText primary="Audio e Video" />
             </ListItemButton>
           </ListItem>
         </List>

@@ -8,7 +8,6 @@ import { dbUtils } from '@/lib/utils';
   ano: number;
 } */
 
-
 // Método POST para criar objetos
 export async function POST(request: NextRequest) {
 
