@@ -46,6 +46,68 @@ export async function GET() {
   }
 }
 
+
+// função para buscar leitors A sentinela Existentes
+async function buscarDesignacoesExistentes(mes: number, ano: number): Promise<Map<string, string[]>> {
+  const designacoesMap = new Map<string, string[]>();
+  
+  try {
+    // Buscar listas de Leitores Sentinela
+    const leitorListSentinelaUtils = await import('@/lib/utils').then(mod => mod.leitorListSentinelaUtils);
+    const listasLeitores = await leitorListSentinelaUtils.findAll();
+    
+    // Buscar listas de Áudio e Vídeo existentes
+    const listasAudioVideo = await audioVideoUtils.findAll();
+    
+    // Combinar todas as listas
+    const todasListas = [...listasLeitores, ...listasAudioVideo];
+    
+    // Filtrar listas do mesmo mês/ano
+    const nomesMeses = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    const nomeMesAlvo = nomesMeses[mes - 1];
+    const nomeCompletoAlvo = `${nomeMesAlvo} de ${ano}`.toLowerCase();
+    
+    const listasDoMes = todasListas.filter(lista => 
+      lista.nomemes.toLowerCase() === nomeCompletoAlvo
+    );
+    
+    console.log('📋 Listas do mês encontradas:', listasDoMes.length);
+    
+    // Mapear todas as designações por data
+    listasDoMes.forEach(lista => {
+      const datasComPessoas = 'dataleitorsentinela' in lista 
+        ? (lista.dataleitorsentinela as unknown as DataComLeitor[])
+        : lista.dataav;
+      
+      datasComPessoas.forEach(item => {
+        const data = item.data;
+        const pessoaId = item.pessoa?.id || item.leitor?.id;
+        
+        if (pessoaId) {
+          if (!designacoesMap.has(data)) {
+            designacoesMap.set(data, []);
+          }
+          designacoesMap.get(data)!.push(pessoaId);
+        }
+      });
+    });
+    
+    console.log('🎯 Designações existentes por data:');
+    designacoesMap.forEach((pessoasIds, data) => {
+      console.log(`  ${data}: ${pessoasIds.join(', ')}`);
+    });
+    
+  } catch (error) {
+    console.error('Erro ao buscar designações existentes:', error);
+  }
+  
+  return designacoesMap;
+};
+
+
 // Função para calcular quintas e domingos do mês
 function calcularQuintasEDomingosDoMes(mes: number, ano: number): string[] {
   const inicioMes = new Date(ano, mes - 1, 1);
@@ -143,10 +205,11 @@ function determinarProximaPessoa(pessoas: Objeto[], listasAnteriores: AudioVideo
 }
 
 // Função para distribuir pessoas sequencialmente
-function distribuirPessoasSequencialmente(
+ function distribuirPessoasSequencialmente(
   pessoas: Objeto[], 
-  quantidadeDias: number, 
-  pessoaInicial: Objeto
+  datas: string[], 
+  pessoaInicial: Objeto,
+  designacoesExistentes: Map<string, string[]>
 ): Objeto[] {
   if (pessoas.length === 0) return [];
   
@@ -157,22 +220,42 @@ function distribuirPessoasSequencialmente(
     pessoa.id === pessoaInicial.id
   );
   
-  console.log('🎲 Distribuindo pessoas:');
+  console.log('🎲 Distribuindo pessoas com validação:');
   console.log('Pessoa inicial:', pessoaInicial.nome);
   console.log('Índice inicial:', currentIndex);
-  console.log('Quantidade de dias (quintas + domingos):', quantidadeDias);
+  console.log('Quantidade de datas:', datas.length);
   
   if (currentIndex === -1) {
     console.log('⚠️ Pessoa inicial não encontrada, começando do índice 0');
     currentIndex = 0;
   }
   
-  // Distribuir pessoas sequencialmente
-  for (let i = 0; i < quantidadeDias; i++) {
-    const pessoaAtual = pessoas[currentIndex];
-    resultado.push(pessoaAtual);
+  // Distribuir pessoas sequencialmente com validação
+  for (let i = 0; i < datas.length; i++) {
+    const dataAtual = datas[i];
+    let pessoaAtual = pessoas[currentIndex];
+    let tentativas = 0;
+    const maxTentativas = pessoas.length;
     
-    console.log(`📅 Dia ${i + 1}: ${pessoaAtual.nome} (índice: ${currentIndex})`);
+    // Verificar se a pessoa já está designada nesta data
+    const pessoasDesignadasNaData = designacoesExistentes.get(dataAtual) || [];
+    
+    while (pessoasDesignadasNaData.includes(pessoaAtual.id) && tentativas < maxTentativas) {
+      console.log(`⚠️ ${pessoaAtual.nome} já designado(a) em ${dataAtual}, procurando próxima pessoa...`);
+      
+      // Avançar para a próxima pessoa
+      currentIndex = (currentIndex + 1) % pessoas.length;
+      pessoaAtual = pessoas[currentIndex];
+      tentativas++;
+    }
+    
+    if (tentativas >= maxTentativas) {
+      console.log(`❌ Não foi possível encontrar pessoa disponível para ${dataAtual}`);
+      resultado.push(pessoas[currentIndex]); // Usa a atual mesmo com conflito
+    } else {
+      resultado.push(pessoaAtual);
+      console.log(`✅ ${dataAtual}: ${pessoaAtual.nome}`);
+    }
     
     // Avançar para a próxima pessoa (circular)
     currentIndex = (currentIndex + 1) % pessoas.length;
@@ -267,19 +350,25 @@ if (pessoasAudioVideo.length === 0) {
     { error: 'Nenhuma pessoa com privilégio "Áudio e Vídeo" encontrada' },
     { status: 400 }
   );
-}
-    // 3. Buscar listas anteriores para determinar a sequência
+} // 3. Buscar designações existentes para evitar conflitos
+    console.log('🔍 Buscando designações existentes...');
+    const designacoesExistentes = await buscarDesignacoesExistentes(mes, ano);
+
+    // 4. Buscar listas anteriores para determinar a sequência
     const listasAnteriores = await buscarListasAudioVideo();
     
-    // 4. Determinar a próxima pessoa da sequência
+    // 5. Determinar a próxima pessoa da sequência
     const proximaPessoa = determinarProximaPessoa(pessoasAudioVideo, listasAnteriores);
     
-    // 5. Distribuir pessoas sequencialmente para as quintas e domingos
-   const pessoasDistribuidas = distribuirPessoasSequencialmente(
-  pessoasAudioVideo, 
-  quintasEDomingos.length, 
-  proximaPessoa
-);
+    // 6. Distribuir pessoas sequencialmente COM VALIDAÇÃO
+    const pessoasDistribuidas = distribuirPessoasSequencialmente(
+      pessoasAudioVideo, 
+      quintasEDomingos, // Passar as datas como parâmetro
+      proximaPessoa,
+      designacoesExistentes // Passar designações existentes
+    );
+
+    // [resto do código permanece igual...]
 
 console.log('✅ Pessoas distribuídas:', pessoasDistribuidas.map((p, index) => 
   `${quintasEDomingos[index]}: ${p.nome}`

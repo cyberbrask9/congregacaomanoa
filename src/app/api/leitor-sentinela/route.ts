@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    
+
     // 3. Buscar listas anteriores para determinar a sequência
     const listasAnteriores = await leitorListSentinelaUtils.findAll();
     
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
       proximoLeitor
     );
 
-    // 6. Criar o array de datas com os leitores designados
+    // 6. Criar o array de datas com os leitorbuscarDesignacoesExistenteses designados
     const datasComLeitores: DataComLeitor[] = domingos.map((data, index) => ({
       data,
       leitor: leitoresDistribuidos[index] // <-- O leitor aqui já é um objeto Leitor completo

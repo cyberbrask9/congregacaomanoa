@@ -418,12 +418,35 @@ const AudioVideo: React.FC = () => {
         const confirmar = window.confirm(
           `Os seguintes nomes se repetem na lista: ${nomesRepetidosUnicos.join(', ')}\n\nDeseja salvar assim mesmo?`
         );
-        
+        // VALIDAÇÃO: Verificar conflitos com outras listas
+        const conflitos: string[] = [];
+        // Buscar designações existentes do mês
+    const response = await fetch(`/api/designacoes?mes=${mes}&ano=${ano}`);
+    if (response.ok) {
+      const designacoesExistentes = await response.json();
+      
+      pessoasEditadas.forEach((pessoa, index) => {
+        if (pessoa) {
+          const data = listaEditando.dataav[index].data;
+          const designacoesNaData = designacoesExistentes[data] || [];
+          
+          if (designacoesNaData.includes(pessoa.id)) {
+            conflitos.push(`${formatarData(data)}: ${pessoa.nome}`);
+          }
+        }
+      });
+    }
+
+    if (conflitos.length > 0) {
+      const confirmar = window.confirm(
+        `Os seguintes conflitos foram encontrados:\n\n${conflitos.join('\n')}\n\nDeseja salvar assim mesmo?`
+      );
+
         if (!confirmar) {
           return;
         }
       }
-
+    }
       // Atualizar dataav
       const dataavAtualizado = listaEditando.dataav.map((item, index) => ({
         ...item,
